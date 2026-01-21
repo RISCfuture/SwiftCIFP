@@ -1,0 +1,15 @@
+.DS_Store
+/.build
+/Packages
+xcuserdata/
+DerivedData/
+.swiftpm/configuration/registries.json
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.netrc
+
+
+# SwiftLint Remote Config Cache
+.swiftlint/RemoteConfigCache
+
+# swift-format config (local symlink)
+.swift-format
