@@ -1,6 +1,15 @@
 {
-  "originHash" : "84eaa65de4821e62bf21e185bb63c16490efb34a618e6288b4eedf80674316cb",
+  "originHash" : "0138e75c3423072339b22ea510df22e9d0baab1e97f8e55a427fb4832a19d5cc",
   "pins" : [
+    {
+      "identity" : "progress.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/jkandzi/Progress.swift.git",
+      "state" : {
+        "revision" : "fed6598735d7982058690acf8f52a0a5fdaeb3e0",
+        "version" : "0.4.0"
+      }
+    },
     {
       "identity" : "swift-argument-parser",
       "kind" : "remoteSourceControl",

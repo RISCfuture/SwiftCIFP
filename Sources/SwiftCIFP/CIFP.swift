@@ -96,15 +96,29 @@ public struct CIFP: Sendable, Codable {
 
   /// Creates a CIFP container by parsing the given data.
   ///
+  /// Uses streaming byte-based parsing for optimal performance.
+  ///
   /// - Parameters:
   ///   - data: The CIFP file content as raw bytes.
+  ///   - progressHandler: Optional callback called before processing begins with a Progress
+  ///     object that you can use to track parsing progress.
   ///   - errorCallback: Optional callback for parse errors. Called with (error, lineNumber). Line number is nil for aggregation errors.
   /// - Throws: CIFPError if the file format is invalid.
-  public init(data: Data, errorCallback: ((Error, Int?) -> Void)? = nil) throws {
+  public init(
+    data: Data,
+    progressHandler: @Sendable (Progress) -> Void = { _ in },
+    errorCallback: ((Error, Int?) -> Void)? = nil
+  ) throws {
     var builder = CIFPBuilder()
 
     var lineNumber = 0
-    for line in CIFPLineReader(data: data) {
+
+    // Setup progress tracking based on data size
+    let progress = Progress(totalUnitCount: Int64(data.count))
+    progressHandler(progress)
+
+    var reader = CIFPLineReader(data: data)
+    while let line = reader.next() {
       lineNumber += 1
       do {
         let record = try CIFPByteParser.parseRecord(line, lineNumber: lineNumber)
@@ -112,7 +126,9 @@ public struct CIFP: Sendable, Codable {
       } catch {
         errorCallback?(error, lineNumber)
       }
+      progress.completedUnitCount = Int64(reader.bytesRead)
     }
+    progress.completedUnitCount = progress.totalUnitCount
 
     let result = builder.build(errorCallback: errorCallback)
     self.header = result.header
@@ -135,23 +151,40 @@ public struct CIFP: Sendable, Codable {
   ///
   /// - Parameters:
   ///   - bytes: An async sequence of bytes to parse.
+  ///   - totalBytes: Optional total byte count for progress tracking. If not provided,
+  ///     progress will be indeterminate.
+  ///   - progressHandler: Optional callback called before processing begins with a Progress
+  ///     object that you can use to track parsing progress.
   ///   - errorCallback: Optional callback for parse errors. Called with (error, lineNumber). Line number is nil for aggregation errors.
   /// - Throws: CIFPError if the file format is invalid.
   public init<S: AsyncSequence>(
     bytes: S,
+    totalBytes: Int64? = nil,
+    progressHandler: @Sendable (Progress) -> Void = { _ in },
     errorCallback: ((Error, Int?) -> Void)? = nil
   ) async throws where S.Element == UInt8, S: Sendable {
     var builder = CIFPBuilder()
 
     var lineNumber = 0
+    var bytesRead: Int64 = 0
+
+    // Setup progress tracking
+    let progress = Progress(totalUnitCount: totalBytes ?? -1)
+    progressHandler(progress)
+
     for try await line in AsyncBytesLineReader(source: bytes) {
       lineNumber += 1
+      bytesRead += Int64(line.count + 1)  // +1 for newline
       do {
         let record = try CIFPByteParser.parseRecord(line[...], lineNumber: lineNumber)
         builder.add(record)
       } catch {
         errorCallback?(error, lineNumber)
       }
+      progress.completedUnitCount = bytesRead
+    }
+    if progress.totalUnitCount > 0 {
+      progress.completedUnitCount = progress.totalUnitCount
     }
 
     let result = builder.build(errorCallback: errorCallback)
@@ -171,22 +204,48 @@ public struct CIFP: Sendable, Codable {
 
   /// Creates a CIFP container by streaming from a file URL.
   ///
+  /// Uses async streaming for efficient memory usage with large files.
+  ///
   /// - Parameters:
   ///   - url: The URL of the CIFP file to parse.
+  ///   - progressHandler: Optional callback called before processing begins with a Progress
+  ///     object that you can use to track parsing progress.
   ///   - errorCallback: Optional callback for parse errors. Called with (error, lineNumber). Line number is nil for aggregation errors.
   /// - Throws: CIFPError if the file format is invalid.
-  public init(url: URL, errorCallback: ((Error, Int?) -> Void)? = nil) async throws {
+  public init(
+    url: URL,
+    progressHandler: @Sendable (Progress) -> Void = { _ in },
+    errorCallback: ((Error, Int?) -> Void)? = nil
+  ) async throws {
     var builder = CIFPBuilder()
 
     var lineNumber = 0
-    for try await line in AsyncCIFPLineReader(url: url) {
+    var bytesRead: Int64 = 0
+
+    let reader = AsyncCIFPLineReader(url: url)
+
+    // Setup progress tracking based on file size
+    let progress: Progress
+    if let fileSize = reader.fileSize {
+      progress = Progress(totalUnitCount: fileSize)
+    } else {
+      progress = Progress(totalUnitCount: -1)  // Indeterminate
+    }
+    progressHandler(progress)
+
+    for try await line in reader {
       lineNumber += 1
+      bytesRead += Int64(line.count + 1)  // +1 for newline
       do {
         let record = try CIFPByteParser.parseRecord(line[...], lineNumber: lineNumber)
         builder.add(record)
       } catch {
         errorCallback?(error, lineNumber)
       }
+      progress.completedUnitCount = bytesRead
+    }
+    if progress.totalUnitCount > 0 {
+      progress.completedUnitCount = progress.totalUnitCount
     }
 
     let result = builder.build(errorCallback: errorCallback)

@@ -1,5 +1,6 @@
 import ArgumentParser
 import Foundation
+import Progress
 import SwiftCIFP
 
 @main
@@ -90,15 +91,33 @@ struct SwiftCIFP_E2E: AsyncParsableCommand {
 
     if verbose { print("Loading CIFP data…") }
 
-    let cifp = try await loader.load { error, line in
-      errorCount += 1
-      var message = if let line { "Error at line \(line): " } else { "Error: " }
-      message += error.localizedDescription
-      if let reason = (error as? LocalizedError)?.failureReason {
-        message += "\n - \(reason)"
+    // Set up progress tracking using actor to safely hold observation
+    // Only show progress bar for summary format to avoid corrupting JSON output
+    let progressTracker = format == .summary ? ProgressTracker() : nil
+
+    let cifp = try await loader.load(
+      progressHandler: { progress in
+        if let progressTracker {
+          Task { await progressTracker.track(progress) }
+        }
+      },
+      errorCallback: { error, line in
+        errorCount += 1
+        var message = if let line { "Error at line \(line): " } else { "Error: " }
+        message += error.localizedDescription
+        if let reason = (error as? LocalizedError)?.failureReason {
+          message += "\n - \(reason)"
+        }
+        FileHandle.standardError.printError(message)
       }
-      FileHandle.standardError.printError(message)
+    )
+
+    // Clean up observation
+    if let progressTracker {
+      await progressTracker.stop()
+      print("\r\u{1B}[K", terminator: "")  // Clear progress line
     }
+
     let elapsed = Date().timeIntervalSince(startTime)
 
     guard let stdout = OutputStream(toFileAtPath: "/dev/stdout", append: false) else {
@@ -118,5 +137,44 @@ struct SwiftCIFP_E2E: AsyncParsableCommand {
   enum OutputFormat: String, ExpressibleByArgument {
     case summary
     case json
+  }
+}
+
+// MARK: - ProgressTracker
+
+/// Actor to safely track progress using Progress.swift library.
+private actor ProgressTracker {
+  private var bar: ProgressBar
+  private var lastPercent = 0
+  private var observation: NSKeyValueObservation?
+
+  init() {
+    bar = ProgressBar(
+      count: 100,
+      configuration: [
+        ProgressString(string: "Parsing:"),
+        ProgressPercent(),
+        ProgressBarLine(barLength: 40)
+      ]
+    )
+  }
+
+  func track(_ progress: Foundation.Progress) {
+    observation = progress.observe(\.fractionCompleted, options: [.new]) { prog, _ in
+      let newPercent = Int(prog.fractionCompleted * 100)
+      Task { await self.update(to: newPercent) }
+    }
+  }
+
+  private func update(to percent: Int) {
+    while lastPercent < percent {
+      bar.next()
+      lastPercent += 1
+    }
+  }
+
+  func stop() {
+    observation?.invalidate()
+    observation = nil
   }
 }
