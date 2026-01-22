@@ -40,7 +40,7 @@ struct SwiftCIFP_E2E: AsyncParsableCommand {
   /// URL to download the current CIFP cycle from the FAA.
   private var currentCycleURL: URL {
     get throws {
-      let cycle = Cycle.current
+      let cycle = Cycle.effective
       guard let effectiveDate = cycle.effectiveDate else {
         throw ValidationError("Failed to calculate current cycle effective date")
       }

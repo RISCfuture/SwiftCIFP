@@ -291,20 +291,116 @@ struct CycleTests {
     #expect(cycle?.effectiveDate != nil)
   }
 
-  @Test("Cycle yymm format")
-  func yymmFormat() {
-    let cycle = Cycle(yymm: "2506")
-    #expect(cycle?.yymm == "2506")
-  }
-
-  @Test("Cycle navigation")
+  @Test("Cycle navigation with optional returns")
   func navigation() {
     let cycle = Cycle(yymm: "2501")
     #expect(cycle != nil)
     if let cycle {
-      #expect(cycle.next.cycleNumber == 2)
-      #expect(cycle.next.year == 2025)
+      #expect(cycle.next?.cycleNumber == 2)
+      #expect(cycle.next?.year == 2025)
+      #expect(cycle.previous?.cycleNumber == 13)
+      #expect(cycle.previous?.year == 2024)
     }
+  }
+
+  @Test("Cycle effective returns currently effective cycle")
+  func effectiveCycle() {
+    let effective = Cycle.effective
+    #expect(effective.isEffective)
+    #expect(effective.cycleNumber >= 1 && effective.cycleNumber <= 13)
+  }
+
+  @Test("Cycle cycle(for:) returns correct cycle")
+  func cycleForDate() {
+    // Use the reference date (Jan 25, 2024 is cycle 2401)
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = .gmt
+    let refDate = calendar.date(
+      from: DateComponents(timeZone: .gmt, year: 2024, month: 1, day: 25)
+    )!
+
+    let cycle = Cycle.cycle(for: refDate)
+    #expect(cycle != nil)
+    #expect(cycle?.year == 2024)
+    #expect(cycle?.cycleNumber == 1)
+  }
+
+  @Test("Cycle dateRange covers full cycle")
+  func dateRange() {
+    let cycle = Cycle(yymm: "2501")
+    #expect(cycle != nil)
+    if let cycle {
+      let dateRange = cycle.dateRange
+      #expect(dateRange != nil)
+
+      // Duration should be 28 days
+      let expectedDuration: TimeInterval = 28 * 24 * 60 * 60
+      #expect(dateRange?.duration == expectedDuration)
+    }
+  }
+
+  @Test("Cycle contains returns true for date within cycle")
+  func containsDateWithinCycle() {
+    let cycle = Cycle(yymm: "2501")
+    #expect(cycle != nil)
+    if let cycle, let effectiveDate = cycle.effectiveDate {
+      // A date 14 days into the cycle should be contained
+      var calendar = Calendar(identifier: .gregorian)
+      calendar.timeZone = .gmt
+      let midCycleDate = calendar.date(byAdding: .day, value: 14, to: effectiveDate)!
+      #expect(cycle.contains(midCycleDate))
+    }
+  }
+
+  @Test("Cycle contains returns false for date outside cycle")
+  func containsDateOutsideCycle() {
+    let cycle = Cycle(yymm: "2501")
+    #expect(cycle != nil)
+    if let cycle, let effectiveDate = cycle.effectiveDate {
+      // A date 30 days after the effective date should not be contained
+      var calendar = Calendar(identifier: .gregorian)
+      calendar.timeZone = .gmt
+      let afterDate = calendar.date(byAdding: .day, value: 30, to: effectiveDate)!
+      #expect(!cycle.contains(afterDate))
+    }
+  }
+
+  @Test("Cycle expirationDate returns exact moment")
+  func expirationDateExactMoment() {
+    let cycle = Cycle(yymm: "2501")
+    #expect(cycle != nil)
+    if let cycle {
+      let expirationDate = cycle.expirationDate
+      #expect(expirationDate != nil)
+
+      // expirationDate should equal next cycle's effectiveDate
+      #expect(expirationDate == cycle.next?.effectiveDate)
+    }
+  }
+
+  @Test("Cycle comparison")
+  func comparison() {
+    let older = Cycle(yymm: "2501")
+    let newer = Cycle(yymm: "2502")
+    let same = Cycle(yymm: "2501")
+    #expect(older != nil && newer != nil && same != nil)
+    if let older, let newer, let same {
+      #expect(older < newer)
+      #expect(newer > older)
+      #expect(older == same)
+    }
+  }
+
+  @Test("Cycle isEffective returns true for effective cycle")
+  func isEffective() {
+    let effective = Cycle.effective
+    #expect(effective.isEffective)
+
+    // A past cycle should not be effective
+    let past = Cycle(yymm: "2401")
+    #expect(past != nil)
+    // Past cycle may or may not be effective depending on when test runs
+    _ = past?.isEffective
   }
 }
 

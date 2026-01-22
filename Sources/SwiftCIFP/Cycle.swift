@@ -50,8 +50,8 @@ extension Cycle {
   /// AIRAC cycle length in days.
   private static let cycleLengthDays = 28
 
-  /// The current AIRAC cycle.
-  public static var current: Self {
+  /// The currently effective AIRAC cycle.
+  public static var effective: Self {
     let calendar = Calendar(identifier: .gregorian)
     let now = Date()
 
@@ -81,11 +81,30 @@ extension Cycle {
     )
   }
 
-  /// The expiration date of this cycle (day before next cycle).
+  /// The expiration date of this cycle (midnight UTC when cycle expires).
+  ///
+  /// This is the exact moment the cycle expires, which is also the effective date of the next cycle.
   public var expirationDate: Date? {
     guard let effectiveDate else { return nil }
     let calendar = Calendar(identifier: .gregorian)
-    return calendar.date(byAdding: .day, value: Self.cycleLengthDays - 1, to: effectiveDate)
+    return calendar.date(byAdding: .day, value: Self.cycleLengthDays, to: effectiveDate)
+  }
+
+  /// The date range when this cycle is effective.
+  ///
+  /// The range starts at `effectiveDate` and ends at `expirationDate` (exclusive).
+  public var dateRange: DateInterval? {
+    guard let effectiveDate, let expirationDate else { return nil }
+    return DateInterval(start: effectiveDate, end: expirationDate)
+  }
+
+  /// Returns whether the given date falls within this cycle's effective period.
+  ///
+  /// - Parameter date: The date to check.
+  /// - Returns: `true` if the date falls within this cycle's effective period.
+  public func contains(_ date: Date) -> Bool {
+    guard let dateRange else { return false }
+    return dateRange.contains(date)
   }
 }
 
@@ -93,7 +112,7 @@ extension Cycle {
 
 extension Cycle {
   /// The previous cycle.
-  public var previous: Self {
+  public var previous: Self? {
     if cycleNumber > 1 {
       return Self(year: year, cycleNumber: cycleNumber - 1)
     }
@@ -101,7 +120,7 @@ extension Cycle {
   }
 
   /// The next cycle.
-  public var next: Self {
+  public var next: Self? {
     if cycleNumber < 13 {
       return Self(year: year, cycleNumber: cycleNumber + 1)
     }
@@ -109,22 +128,17 @@ extension Cycle {
   }
 
   /// Whether this cycle is currently effective.
-  public var isCurrent: Bool {
-    self == Self.current
+  public var isEffective: Bool {
+    self == Self.effective
   }
 }
 
 // MARK: - String Representation
 
 extension Cycle {
-  /// The YYMM string representation.
-  public var yymm: String {
+  /// The YYMM string representation (used internally for identification).
+  var yymm: String {
     String(format: "%02d%02d", year % 100, cycleNumber)
-  }
-
-  /// The full 4-digit year.
-  public var fullYear: Int {
-    Int(year)
   }
 }
 
@@ -150,5 +164,27 @@ extension Cycle: Identifiable {
 extension Cycle: CustomStringConvertible {
   public var description: String {
     "AIRAC \(yymm)"
+  }
+}
+
+// MARK: - Factory Methods
+
+extension Cycle {
+  /// Returns the cycle that contains the given date.
+  ///
+  /// - Parameter date: The date to find the cycle for.
+  /// - Returns: The cycle containing the date, or `nil` if the cycle cannot be determined.
+  public static func cycle(for date: Date) -> Self? {
+    let calendar = Calendar(identifier: .gregorian)
+    let daysSinceRef = calendar.dateComponents([.day], from: referenceDate, to: date).day ?? 0
+
+    // Handle dates before the reference
+    guard daysSinceRef >= 0 else { return nil }
+
+    let totalCycles = daysSinceRef / cycleLengthDays
+    let year = 2024 + (totalCycles / 13)
+    let cycleInYear = (totalCycles % 13) + 1
+
+    return Self(year: UInt(year), cycleNumber: UInt8(cycleInYear))
   }
 }

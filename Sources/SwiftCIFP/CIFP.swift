@@ -558,7 +558,7 @@ private struct CIFPBuilder {
       guard let c = Cycle(yymm: cycleStr) else { continue }
       return c
     }
-    return Cycle.current
+    return Cycle.effective
   }
 
   private func buildAirways(errorCallback: ((Error, Int?) -> Void)?) -> [String: Airway] {

@@ -134,11 +134,11 @@ print("Data cycle: \(cifp.cycle)")
 print("Effective: \(cifp.cycle.effectiveDate)")
 print("Expires: \(cifp.cycle.expirationDate)")
 
-// Get current AIRAC cycle
-let current = Cycle.current
-print("Current cycle: \(current.yymm)")
+// Get effective AIRAC cycle
+let effective = Cycle.effective
+print("Effective cycle: \(effective)")
 
 // Navigate between cycles
-let next = current.next
-let previous = current.previous
+let next = effective.next
+let previous = effective.previous
 ```

@@ -160,7 +160,7 @@ public actor CIFPData {
       dataSupplier: "TEST",
       descriptiveText: []
     )
-    self.cycle = .current
+    self.cycle = .effective
     self.gridMORAs = []
     self.vhfNavaids = vhfNavaids
     self.ndbNavaids = ndbNavaids
