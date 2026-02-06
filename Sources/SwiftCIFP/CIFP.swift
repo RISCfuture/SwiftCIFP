@@ -704,8 +704,15 @@ private struct CIFPBuilder {
         continue
       }
       let sortedRecords = legRecords.sorted(by: { $0.leg.sequenceNumber < $1.leg.sequenceNumber })
-      let mainLegs = sortedRecords.filter { !$0.isMissedApproach }.map(\.leg)
-      let missedLegs = sortedRecords.filter(\.isMissedApproach).map(\.leg)
+
+      // All legs at or after the first missed approach marker are missed approach legs.
+      // The FAA CIFP data only explicitly marks the first missed approach leg; subsequent
+      // legs (e.g., DF back to a hold fix, HM at the hold) lack the marker.
+      let firstMissedIndex =
+        sortedRecords.firstIndex(where: \.isMissedApproach)
+        ?? sortedRecords.endIndex
+      let mainLegs = sortedRecords[..<firstMissedIndex].map(\.leg)
+      let missedLegs = sortedRecords[firstMissedIndex...].map(\.leg)
 
       // Look up continuation record for SBAS/LPV data
       let continuation = approachContinuations[key]
