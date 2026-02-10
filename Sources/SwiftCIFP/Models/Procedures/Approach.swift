@@ -35,8 +35,8 @@ public struct Approach: Sendable, Codable, ProcedureLinkable {
   /// Transition identifier (if this is a transition).
   public let transitionId: String?
 
-  /// Associated runway identifier.
-  let runwayId: String?
+  /// Associated runway identifier (e.g., "RW19L").
+  public let runwayId: String?
 
   /// Multiple indicator (for multiple approaches to same runway).
   public let multipleIndicator: String?

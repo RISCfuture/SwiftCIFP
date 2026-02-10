@@ -341,6 +341,20 @@ extension CIFP {
   }
 }
 
+// MARK: - Runway Transition Expansion
+
+/// Expands a runway transition identifier into runway names.
+/// Handles the "B" (both) suffix by expanding to "L" and "R" variants.
+/// For example, `"RW24B"` expands to `["RW24L", "RW24R"]`.
+/// Non-"B" identifiers are returned as-is: `"RW15"` → `["RW15"]`.
+func expandRunwayTransitionId(_ transitionId: String) -> [String] {
+  if transitionId.hasSuffix("B") {
+    let base = transitionId.dropLast()
+    return ["\(base)L", "\(base)R"]
+  }
+  return [transitionId]
+}
+
 // MARK: - CIFPBuilder
 
 /// Builder for aggregating parsed records into CIFP.
@@ -617,45 +631,88 @@ private struct CIFPBuilder {
   }
 
   private func buildSIDs(errorCallback: ((Error, Int?) -> Void)?) -> [SID] {
-    var sids: [SID] = []
-    for (key, legs) in sidLegs {
-      guard let first = legs.first,
-        let routeTypeChar = first.routeType,
-        let routeType = SIDRouteType(rawValue: routeTypeChar)
-      else {
-        let reason: AggregationErrorReason =
-          if let first = legs.first, let char = first.routeType {
-            .invalidRouteType(char)
-          } else {
-            .missingRouteType
-          }
-        errorCallback?(
-          CIFPError.aggregationError(recordType: "SID", identifier: key, reason: reason),
-          nil
-        )
-        continue
-      }
-      sids.append(
+    let runwayNames = collectRunwayNames(from: sidLegs) { char in
+      SIDRouteType(rawValue: char)?.isRunwayTransition ?? false
+    }
+    return buildProcedures(
+      from: sidLegs,
+      recordTypeName: "SID",
+      runwayNames: runwayNames,
+      parseRouteType: { SIDRouteType(rawValue: $0) },
+      makeProcedure: { first, routeType, runways, legs in
         SID(
           airportId: first.airportId,
           icaoRegion: first.icaoRegion,
           identifier: first.procedureId,
           routeType: routeType,
           transitionId: first.transitionId,
-          runwayNames: [],
-          legs: legs.map(\.leg).sorted(by: { $0.sequenceNumber < $1.sequenceNumber })
+          runwayNames: runways,
+          legs: legs
         )
-      )
-    }
-    return sids
+      },
+      errorCallback: errorCallback
+    )
   }
 
   private func buildSTARs(errorCallback: ((Error, Int?) -> Void)?) -> [STAR] {
-    var stars: [STAR] = []
-    for (key, legs) in starLegs {
+    let runwayNames = collectRunwayNames(from: starLegs) { char in
+      STARRouteType(rawValue: char)?.isRunwayTransition ?? false
+    }
+    return buildProcedures(
+      from: starLegs,
+      recordTypeName: "STAR",
+      runwayNames: runwayNames,
+      parseRouteType: { STARRouteType(rawValue: $0) },
+      makeProcedure: { first, routeType, runways, legs in
+        STAR(
+          airportId: first.airportId,
+          icaoRegion: first.icaoRegion,
+          identifier: first.procedureId,
+          routeType: routeType,
+          transitionId: first.transitionId,
+          runwayNames: runways,
+          legs: legs
+        )
+      },
+      errorCallback: errorCallback
+    )
+  }
+
+  // MARK: - SID/STAR Helpers
+
+  /// Collects runway names per procedure by scanning runway transition entries.
+  private func collectRunwayNames(
+    from legs: [String: [ProcedureLegRecord]],
+    isRunwayTransition: (Character) -> Bool
+  ) -> [String: Set<String>] {
+    var result: [String: Set<String>] = [:]
+    for (_, legs) in legs {
       guard let first = legs.first,
         let routeTypeChar = first.routeType,
-        let routeType = STARRouteType(rawValue: routeTypeChar)
+        isRunwayTransition(routeTypeChar),
+        let transitionId = first.transitionId
+      else { continue }
+      let procKey = "\(first.airportId)-\(first.procedureId)"
+      for name in expandRunwayTransitionId(transitionId) {
+        result[procKey, default: []].insert(name)
+      }
+    }
+    return result
+  }
+
+  /// Builds procedure records from grouped leg records.
+  private func buildProcedures<RouteType, Procedure>(
+    from legs: [String: [ProcedureLegRecord]],
+    recordTypeName: String,
+    runwayNames: [String: Set<String>],
+    parseRouteType: (Character) -> RouteType?,
+    makeProcedure: (ProcedureLegRecord, RouteType, Set<String>, [ProcedureLeg]) -> Procedure,
+    errorCallback: ((Error, Int?) -> Void)?
+  ) -> [Procedure] {
+    legs.compactMap { key, legs in
+      guard let first = legs.first,
+        let routeTypeChar = first.routeType,
+        let routeType = parseRouteType(routeTypeChar)
       else {
         let reason: AggregationErrorReason =
           if let first = legs.first, let char = first.routeType {
@@ -664,24 +721,19 @@ private struct CIFPBuilder {
             .missingRouteType
           }
         errorCallback?(
-          CIFPError.aggregationError(recordType: "STAR", identifier: key, reason: reason),
+          CIFPError.aggregationError(
+            recordType: recordTypeName,
+            identifier: key,
+            reason: reason
+          ),
           nil
         )
-        continue
+        return nil
       }
-      stars.append(
-        STAR(
-          airportId: first.airportId,
-          icaoRegion: first.icaoRegion,
-          identifier: first.procedureId,
-          routeType: routeType,
-          transitionId: first.transitionId,
-          runwayNames: [],
-          legs: legs.map(\.leg).sorted(by: { $0.sequenceNumber < $1.sequenceNumber })
-        )
-      )
+      let procKey = "\(first.airportId)-\(first.procedureId)"
+      let sortedLegs = legs.map(\.leg).sorted { $0.sequenceNumber < $1.sequenceNumber }
+      return makeProcedure(first, routeType, runwayNames[procKey] ?? [], sortedLegs)
     }
-    return stars
   }
 
   private func buildApproaches(errorCallback: ((Error, Int?) -> Void)?) -> [Approach] {

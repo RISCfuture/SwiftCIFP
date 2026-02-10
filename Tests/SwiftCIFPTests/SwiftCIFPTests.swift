@@ -597,6 +597,89 @@ struct NavaidTests {
   }
 }
 
+// MARK: - Runway Transition Tests
+
+@Suite("Runway Transition Expansion")
+struct RunwayTransitionExpansionTests {
+  @Test("Non-B suffix passes through unchanged")
+  func nonBSuffix() {
+    let result = expandRunwayTransitionId("RW15")
+    #expect(result == ["RW15"])
+  }
+
+  @Test("L/R suffix passes through unchanged")
+  func lrSuffix() {
+    let resultL = expandRunwayTransitionId("RW24L")
+    #expect(resultL == ["RW24L"])
+    let resultR = expandRunwayTransitionId("RW24R")
+    #expect(resultR == ["RW24R"])
+  }
+
+  @Test("B suffix expands to L and R")
+  func bSuffixExpands() {
+    let result = expandRunwayTransitionId("RW24B")
+    #expect(Set(result) == ["RW24L", "RW24R"])
+  }
+
+  @Test("B suffix with single-digit runway")
+  func bSuffixSingleDigit() {
+    let result = expandRunwayTransitionId("RW06B")
+    #expect(Set(result) == ["RW06L", "RW06R"])
+  }
+}
+
+@Suite("SID Runway Names")
+struct SIDRunwayNameTests {
+  @Test("SID stores runway names matching Runway.name format")
+  func runwayNamesFormat() {
+    let sid = SID(
+      airportId: "KASE",
+      icaoRegion: "K2",
+      identifier: "PITKN5",
+      routeType: .rnavRunwayTransition,
+      transitionId: "RW33",
+      runwayNames: ["RW33"],
+      legs: []
+    )
+    #expect(sid.runwayNames.contains("RW33"))
+    #expect(sid.runwayNames.count == 1)
+  }
+
+  @Test("SID with expanded B suffix runway names")
+  func expandedBSuffix() {
+    let sid = SID(
+      airportId: "KLAX",
+      icaoRegion: "K2",
+      identifier: "VTU8",
+      routeType: .rnavCommonRoute,
+      transitionId: nil,
+      runwayNames: ["RW06L", "RW06R", "RW24L", "RW24R"],
+      legs: []
+    )
+    #expect(sid.runwayNames.count == 4)
+    #expect(sid.runwayNames.contains("RW24L"))
+    #expect(sid.runwayNames.contains("RW24R"))
+  }
+}
+
+@Suite("STAR Runway Names")
+struct STARRunwayNameTests {
+  @Test("STAR stores runway names matching Runway.name format")
+  func runwayNamesFormat() {
+    let star = STAR(
+      airportId: "KLAX",
+      icaoRegion: "K2",
+      identifier: "SADDE6",
+      routeType: .rnavRunwayTransition,
+      transitionId: "RW24L",
+      runwayNames: ["RW24L", "RW24R"],
+      legs: []
+    )
+    #expect(star.runwayNames.contains("RW24L"))
+    #expect(star.runwayNames.contains("RW24R"))
+  }
+}
+
 // MARK: - CIFPData Tests
 
 @Suite("CIFPData")

@@ -133,6 +133,16 @@ public enum SIDRouteType: Character, Sendable, Codable, CaseIterable, ByteInitia
 
   /// Vector SID enroute transition.
   case vectorEnrouteTransition = "V"
+
+  /// Whether this route type is a runway transition.
+  public var isRunwayTransition: Bool {
+    switch self {
+      case .runwayTransition, .rnavRunwayTransition, .fmsRunwayTransition:
+        true
+      default:
+        false
+    }
+  }
 }
 
 /// STAR route type (arrival procedure).
@@ -172,6 +182,17 @@ public enum STARRouteType: Character, Sendable, Codable, CaseIterable, ByteIniti
 
   /// FMS STAR runway transition.
   case fmsRunwayTransition = "S"
+
+  /// Whether this route type is a runway transition.
+  public var isRunwayTransition: Bool {
+    switch self {
+      case .runwayTransition, .rnavRunwayTransition, .profileDescentRunwayTransition,
+        .fmsRunwayTransition:
+        true
+      default:
+        false
+    }
+  }
 }
 
 /// Approach route type qualifier.
