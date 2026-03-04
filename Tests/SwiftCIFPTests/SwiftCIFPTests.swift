@@ -1,6 +1,9 @@
-import CoreLocation
 import Foundation
 import Testing
+
+#if canImport(CoreLocation)
+  import CoreLocation
+#endif
 
 @testable import SwiftCIFP
 
@@ -15,21 +18,23 @@ struct CoordinateTests {
     #expect(coord.longitudeDeg == -118.4081)
   }
 
-  @Test("Coordinate from CoreLocation")
-  func fromCoreLocation() {
-    let clCoord = CLLocationCoordinate2D(latitude: 40.6413, longitude: -73.7781)
-    let coord = Coordinate(clCoord)
-    #expect(coord.latitudeDeg == 40.6413)
-    #expect(coord.longitudeDeg == -73.7781)
-  }
+  #if canImport(CoreLocation)
+    @Test("Coordinate from CoreLocation")
+    func fromCoreLocation() {
+      let clCoord = CLLocationCoordinate2D(latitude: 40.6413, longitude: -73.7781)
+      let coord = Coordinate(clCoord)
+      #expect(coord.latitudeDeg == 40.6413)
+      #expect(coord.longitudeDeg == -73.7781)
+    }
 
-  @Test("Coordinate to CoreLocation")
-  func toCoreLocation() {
-    let coord = Coordinate(latitudeDeg: 51.4700, longitudeDeg: -0.4543)
-    let clCoord = coord.coreLocation
-    #expect(clCoord.latitude == 51.4700)
-    #expect(clCoord.longitude == -0.4543)
-  }
+    @Test("Coordinate to CoreLocation")
+    func toCoreLocation() {
+      let coord = Coordinate(latitudeDeg: 51.4700, longitudeDeg: -0.4543)
+      let clCoord = coord.coreLocation
+      #expect(clCoord.latitude == 51.4700)
+      #expect(clCoord.longitude == -0.4543)
+    }
+  #endif
 
   @Test("Coordinate description")
   func description() {

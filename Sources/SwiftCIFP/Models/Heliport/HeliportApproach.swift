@@ -1,4 +1,3 @@
-import CoreLocation
 import Foundation
 
 /// Heliport approach procedure.

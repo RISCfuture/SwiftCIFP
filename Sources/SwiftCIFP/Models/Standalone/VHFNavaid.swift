@@ -1,4 +1,3 @@
-import CoreLocation
 import Foundation
 
 /// VHF Navaid (VOR, VORTAC, DME) record.

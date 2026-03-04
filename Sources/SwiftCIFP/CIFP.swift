@@ -1,5 +1,8 @@
-import CoreLocation
 import Foundation
+
+#if canImport(CoreLocation)
+  import CoreLocation
+#endif
 @preconcurrency import RegexBuilder
 
 /// Container for CIFP (Coded Instrument Flight Procedures) data.
@@ -290,15 +293,17 @@ public struct CIFP: Sendable, Codable {
     airports[id]
   }
 
-  /// Returns the GridMORA containing the given coordinate, if available.
-  ///
-  /// - Parameter coordinate: The coordinate to look up.
-  /// - Returns: The GridMORA for the grid square containing the coordinate, or `nil` if not available.
-  public func gridMORA(at coordinate: CLLocationCoordinate2D) -> GridMORA? {
-    let latDeg = Int(floor(coordinate.latitude))
-    let lonDeg = Int(floor(coordinate.longitude))
-    return gridMORA(latitudeDeg: latDeg, longitudeDeg: lonDeg)
-  }
+  #if canImport(CoreLocation)
+    /// Returns the GridMORA containing the given coordinate, if available.
+    ///
+    /// - Parameter coordinate: The coordinate to look up.
+    /// - Returns: The GridMORA for the grid square containing the coordinate, or `nil` if not available.
+    public func gridMORA(at coordinate: CLLocationCoordinate2D) -> GridMORA? {
+      let latDeg = Int(floor(coordinate.latitude))
+      let lonDeg = Int(floor(coordinate.longitude))
+      return gridMORA(latitudeDeg: latDeg, longitudeDeg: lonDeg)
+    }
+  #endif
 
   /// Returns the GridMORA for the given grid square, if available.
   ///

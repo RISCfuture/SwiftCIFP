@@ -1,5 +1,8 @@
-import CoreLocation
 import Foundation
+
+#if canImport(CoreLocation)
+  import CoreLocation
+#endif
 
 /// A geographic coordinate with latitude and longitude in decimal degrees.
 ///
@@ -32,20 +35,22 @@ extension Coordinate {
   }
 }
 
-// MARK: - CoreLocation Extension
+#if canImport(CoreLocation)
+  // MARK: - CoreLocation Extension
 
-extension Coordinate {
-  /// CoreLocation coordinate representation.
-  public var coreLocation: CLLocationCoordinate2D {
-    CLLocationCoordinate2D(latitude: latitudeDeg, longitude: longitudeDeg)
-  }
+  extension Coordinate {
+    /// CoreLocation coordinate representation.
+    public var coreLocation: CLLocationCoordinate2D {
+      CLLocationCoordinate2D(latitude: latitudeDeg, longitude: longitudeDeg)
+    }
 
-  /// Creates a Coordinate from a CoreLocation coordinate.
-  init(_ coordinate: CLLocationCoordinate2D) {
-    self.latitudeDeg = coordinate.latitude
-    self.longitudeDeg = coordinate.longitude
+    /// Creates a Coordinate from a CoreLocation coordinate.
+    init(_ coordinate: CLLocationCoordinate2D) {
+      self.latitudeDeg = coordinate.latitude
+      self.longitudeDeg = coordinate.longitude
+    }
   }
-}
+#endif
 
 // MARK: - CustomStringConvertible
 

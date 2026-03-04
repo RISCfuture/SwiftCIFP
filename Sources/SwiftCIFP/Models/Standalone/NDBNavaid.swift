@@ -1,4 +1,3 @@
-import CoreLocation
 import Foundation
 
 /// NDB (Non-Directional Beacon) Navaid record.

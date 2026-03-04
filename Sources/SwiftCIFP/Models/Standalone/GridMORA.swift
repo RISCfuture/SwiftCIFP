@@ -1,5 +1,8 @@
-import CoreLocation
 import Foundation
+
+#if canImport(CoreLocation)
+  import CoreLocation
+#endif
 
 /// Grid MORA (Minimum Off-Route Altitude) record for a single 1°×1° grid square.
 ///
@@ -50,30 +53,32 @@ extension GridMORA {
   }
 }
 
-// MARK: - CLLocationCoordinate2D Convenience
+#if canImport(CoreLocation)
+  // MARK: - CLLocationCoordinate2D Convenience
 
-extension GridMORA {
-  /// The southwest corner of this grid square.
-  public var southwestCorner: CLLocationCoordinate2D {
-    CLLocationCoordinate2D(
-      latitude: Double(latitudeDeg),
-      longitude: Double(longitudeDeg)
-    )
-  }
+  extension GridMORA {
+    /// The southwest corner of this grid square.
+    public var southwestCorner: CLLocationCoordinate2D {
+      CLLocationCoordinate2D(
+        latitude: Double(latitudeDeg),
+        longitude: Double(longitudeDeg)
+      )
+    }
 
-  /// The northeast corner of this grid square.
-  public var northeastCorner: CLLocationCoordinate2D {
-    CLLocationCoordinate2D(
-      latitude: Double(latitudeDeg + 1),
-      longitude: Double(longitudeDeg + 1)
-    )
-  }
+    /// The northeast corner of this grid square.
+    public var northeastCorner: CLLocationCoordinate2D {
+      CLLocationCoordinate2D(
+        latitude: Double(latitudeDeg + 1),
+        longitude: Double(longitudeDeg + 1)
+      )
+    }
 
-  /// The centroid of this grid square.
-  public var centroid: CLLocationCoordinate2D {
-    CLLocationCoordinate2D(
-      latitude: Double(latitudeDeg) + 0.5,
-      longitude: Double(longitudeDeg) + 0.5
-    )
+    /// The centroid of this grid square.
+    public var centroid: CLLocationCoordinate2D {
+      CLLocationCoordinate2D(
+        latitude: Double(latitudeDeg) + 0.5,
+        longitude: Double(longitudeDeg) + 0.5
+      )
+    }
   }
-}
+#endif

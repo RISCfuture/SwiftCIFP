@@ -89,139 +89,291 @@ public enum CIFPError: Error, LocalizedError, Sendable {
   public var errorDescription: String? {
     switch self {
       case .invalidEncoding:
-        String(localized: "File encoding was invalid.", bundle: .module)
+        #if canImport(Darwin)
+          String(localized: "File encoding was invalid.", bundle: .module)
+        #else
+          "File encoding was invalid."
+        #endif
       case .invalidFormat:
-        String(localized: "CIFP data format was invalid.", bundle: .module)
+        #if canImport(Darwin)
+          String(localized: "CIFP data format was invalid.", bundle: .module)
+        #else
+          "CIFP data format was invalid."
+        #endif
       case .parseError:
-        String(localized: "CIFP data could not be parsed.", bundle: .module)
+        #if canImport(Darwin)
+          String(localized: "CIFP data could not be parsed.", bundle: .module)
+        #else
+          "CIFP data could not be parsed."
+        #endif
       case .fileNotFound:
-        String(localized: "CIFP file was not found.", bundle: .module)
+        #if canImport(Darwin)
+          String(localized: "CIFP file was not found.", bundle: .module)
+        #else
+          "CIFP file was not found."
+        #endif
       case .streamError:
-        String(localized: "A stream error occurred.", bundle: .module)
+        #if canImport(Darwin)
+          String(localized: "A stream error occurred.", bundle: .module)
+        #else
+          "A stream error occurred."
+        #endif
       case .lineTooShort:
-        String(localized: "Line was too short.", bundle: .module)
+        #if canImport(Darwin)
+          String(localized: "Line was too short.", bundle: .module)
+        #else
+          "Line was too short."
+        #endif
       case .unknownSectionCode:
-        String(localized: "Unknown section code.", bundle: .module)
+        #if canImport(Darwin)
+          String(localized: "Unknown section code.", bundle: .module)
+        #else
+          "Unknown section code."
+        #endif
       case .unknownRecordType:
-        String(localized: "Unknown record type.", bundle: .module)
+        #if canImport(Darwin)
+          String(localized: "Unknown record type.", bundle: .module)
+        #else
+          "Unknown record type."
+        #endif
       case .missingRequiredField:
-        String(localized: "Required field was missing.", bundle: .module)
+        #if canImport(Darwin)
+          String(localized: "Required field was missing.", bundle: .module)
+        #else
+          "Required field was missing."
+        #endif
       case .unknownSubsectionCode:
-        String(localized: "Unknown subsection code.", bundle: .module)
+        #if canImport(Darwin)
+          String(localized: "Unknown subsection code.", bundle: .module)
+        #else
+          "Unknown subsection code."
+        #endif
       case .aggregationError:
-        String(localized: "Record aggregation failed.", bundle: .module)
+        #if canImport(Darwin)
+          String(localized: "Record aggregation failed.", bundle: .module)
+        #else
+          "Record aggregation failed."
+        #endif
     }
   }
 
   public var failureReason: String? {
     switch self {
       case .invalidEncoding:
-        return String(localized: "The file is not valid ASCII encoding.", bundle: .module)
+        #if canImport(Darwin)
+          return String(localized: "The file is not valid ASCII encoding.", bundle: .module)
+        #else
+          return "The file is not valid ASCII encoding."
+        #endif
       case .invalidFormat(let error):
         return switch error {
           case .missingHeader:
-            String(
-              localized: "The CIFP file does not contain valid header records.",
-              bundle: .module
-            )
+            #if canImport(Darwin)
+              String(
+                localized: "The CIFP file does not contain valid header records.",
+                bundle: .module
+              )
+            #else
+              "The CIFP file does not contain valid header records."
+            #endif
           case .invalidCycleDate:
-            String(localized: "The cycle date in the header could not be parsed.", bundle: .module)
+            #if canImport(Darwin)
+              String(localized: "The cycle date in the header could not be parsed.", bundle: .module)
+            #else
+              "The cycle date in the header could not be parsed."
+            #endif
           case .invalidCoordinate(let value):
-            String(
-              localized: "Coordinate value “\(value)” is not in valid HDDDMMSSSS format.",
-              bundle: .module
-            )
+            #if canImport(Darwin)
+              String(
+                localized: "Coordinate value “\(value)” is not in valid HDDDMMSSSS format.",
+                bundle: .module
+              )
+            #else
+              "Coordinate value “\(value)” is not in valid HDDDMMSSSS format."
+            #endif
           case .invalidAltitude(let value):
-            String(localized: "Altitude value “\(value)” could not be parsed.", bundle: .module)
+            #if canImport(Darwin)
+              String(localized: "Altitude value “\(value)” could not be parsed.", bundle: .module)
+            #else
+              "Altitude value “\(value)” could not be parsed."
+            #endif
           case .invalidLatitudeDirection(let char):
-            String(
-              localized: "Latitude direction “\(String(char))” is invalid. Expected “N” or “S”.",
-              bundle: .module
-            )
+            #if canImport(Darwin)
+              String(
+                localized: "Latitude direction “\(String(char))” is invalid. Expected “N” or “S”.",
+                bundle: .module
+              )
+            #else
+              "Latitude direction “\(String(char))” is invalid. Expected “N” or “S”."
+            #endif
           case .invalidLongitudeDirection(let char):
-            String(
-              localized: "Longitude direction “\(String(char))” is invalid. Expected “E” or “W”.",
-              bundle: .module
-            )
+            #if canImport(Darwin)
+              String(
+                localized: "Longitude direction “\(String(char))” is invalid. Expected “E” or “W”.",
+                bundle: .module
+              )
+            #else
+              "Longitude direction “\(String(char))” is invalid. Expected “E” or “W”."
+            #endif
         }
       case let .parseError(field, value, line):
-        return String(
-          localized: "Failed to parse \(field) “\(value)” at line \(line, format: .number).",
-          bundle: .module
-        )
+        #if canImport(Darwin)
+          return String(
+            localized: "Failed to parse \(field) “\(value)” at line \(line, format: .number).",
+            bundle: .module
+          )
+        #else
+          return "Failed to parse \(field) “\(value)” at line \(line)."
+        #endif
       case .fileNotFound(let url):
-        return String(localized: "The file at “\(url.path)” could not be found.", bundle: .module)
+        #if canImport(Darwin)
+          return String(localized: "The file at “\(url.path)” could not be found.", bundle: .module)
+        #else
+          return "The file at “\(url.path)” could not be found."
+        #endif
       case .streamError(let error):
-        return String(
-          localized: "An error occurred while reading: \(error.localizedDescription)",
-          bundle: .module
-        )
+        #if canImport(Darwin)
+          return String(
+            localized: "An error occurred while reading: \(error.localizedDescription)",
+            bundle: .module
+          )
+        #else
+          return "An error occurred while reading: \(error.localizedDescription)"
+        #endif
       case let .lineTooShort(expected, actual, line):
-        return String(
-          localized:
-            "Line \(line, format: .number) has \(actual, format: .number) characters but \(expected, format: .number) are required.",
-          bundle: .module
-        )
+        #if canImport(Darwin)
+          return String(
+            localized:
+              "Line \(line, format: .number) has \(actual, format: .number) characters but \(expected, format: .number) are required.",
+            bundle: .module
+          )
+        #else
+          return "Line \(line) has \(actual) characters but \(expected) are required."
+        #endif
       case let .unknownSectionCode(code, line):
-        return String(
-          localized: "Unknown section code “\(code)” at line \(line, format: .number).",
-          bundle: .module
-        )
+        #if canImport(Darwin)
+          return String(
+            localized: "Unknown section code “\(code)” at line \(line, format: .number).",
+            bundle: .module
+          )
+        #else
+          return "Unknown section code “\(code)” at line \(line)."
+        #endif
       case let .unknownRecordType(type, line):
-        return String(
-          localized: "Unknown record type “\(String(type))” at line \(line, format: .number).",
-          bundle: .module
-        )
+        #if canImport(Darwin)
+          return String(
+            localized: "Unknown record type “\(String(type))” at line \(line, format: .number).",
+            bundle: .module
+          )
+        #else
+          return "Unknown record type “\(String(type))” at line \(line)."
+        #endif
       case let .missingRequiredField(field, recordType, line):
-        return String(
-          localized:
-            "Field “\(field)” is required for \(recordType) at line \(line, format: .number).",
-          bundle: .module
-        )
+        #if canImport(Darwin)
+          return String(
+            localized:
+              "Field “\(field)” is required for \(recordType) at line \(line, format: .number).",
+            bundle: .module
+          )
+        #else
+          return "Field “\(field)” is required for \(recordType) at line \(line)."
+        #endif
       case let .unknownSubsectionCode(section, subsection, line):
-        return String(
-          localized:
-            "Unknown subsection “\(String(subsection))” in section “\(section)” at line \(line, format: .number).",
-          bundle: .module
-        )
+        #if canImport(Darwin)
+          return String(
+            localized:
+              "Unknown subsection “\(String(subsection))” in section “\(section)” at line \(line, format: .number).",
+            bundle: .module
+          )
+        #else
+          return "Unknown subsection “\(String(subsection))” in section “\(section)” at line \(line)."
+        #endif
       case let .aggregationError(recordType, identifier, reason):
         let reasonString: String =
           switch reason {
             case .missingAirwayMetadata:
-              String(localized: "missing route type or level", bundle: .module)
+              #if canImport(Darwin)
+                String(localized: "missing route type or level", bundle: .module)
+              #else
+                "missing route type or level"
+              #endif
             case .missingMSARadius:
-              String(localized: "missing radius", bundle: .module)
+              #if canImport(Darwin)
+                String(localized: "missing radius", bundle: .module)
+              #else
+                "missing radius"
+              #endif
             case .invalidRouteType(let char):
-              String(localized: "invalid route type “\(String(char))”", bundle: .module)
+              #if canImport(Darwin)
+                String(localized: "invalid route type “\(String(char))”", bundle: .module)
+              #else
+                "invalid route type “\(String(char))”"
+              #endif
             case .missingRouteType:
-              String(localized: "missing route type", bundle: .module)
+              #if canImport(Darwin)
+                String(localized: "missing route type", bundle: .module)
+              #else
+                "missing route type"
+              #endif
             case .invalidApproachType(let char):
-              String(localized: "invalid approach type “\(String(char))”", bundle: .module)
+              #if canImport(Darwin)
+                String(localized: "invalid approach type “\(String(char))”", bundle: .module)
+              #else
+                "invalid approach type “\(String(char))”"
+              #endif
             case .missingApproachType:
-              String(localized: "missing approach type", bundle: .module)
+              #if canImport(Darwin)
+                String(localized: "missing approach type", bundle: .module)
+              #else
+                "missing approach type"
+              #endif
             case .noBoundaryRecords:
-              String(localized: "no boundary records", bundle: .module)
+              #if canImport(Darwin)
+                String(localized: "no boundary records", bundle: .module)
+              #else
+                "no boundary records"
+              #endif
             case .missingRestrictiveType:
-              String(localized: "missing restrictive type", bundle: .module)
+              #if canImport(Darwin)
+                String(localized: "missing restrictive type", bundle: .module)
+              #else
+                "missing restrictive type"
+              #endif
             case .noLegRecords:
-              String(localized: "no leg records", bundle: .module)
+              #if canImport(Darwin)
+                String(localized: "no leg records", bundle: .module)
+              #else
+                "no leg records"
+              #endif
           }
-        return String(
-          localized: "\(recordType) “\(identifier)” could not be built: \(reasonString).",
-          bundle: .module
-        )
+        #if canImport(Darwin)
+          return String(
+            localized: "\(recordType) “\(identifier)” could not be built: \(reasonString).",
+            bundle: .module
+          )
+        #else
+          return "\(recordType) “\(identifier)” could not be built: \(reasonString)."
+        #endif
     }
   }
 
   public var recoverySuggestion: String? {
     switch self {
       case .invalidEncoding, .invalidFormat:
-        String(localized: "Verify the file is a valid FAA CIFP file.", bundle: .module)
+        #if canImport(Darwin)
+          String(localized: "Verify the file is a valid FAA CIFP file.", bundle: .module)
+        #else
+          "Verify the file is a valid FAA CIFP file."
+        #endif
       case .fileNotFound:
-        String(
-          localized: "Verify that the file exists and has not been moved or deleted.",
-          bundle: .module
-        )
+        #if canImport(Darwin)
+          String(
+            localized: "Verify that the file exists and has not been moved or deleted.",
+            bundle: .module
+          )
+        #else
+          "Verify that the file exists and has not been moved or deleted."
+        #endif
       case .parseError, .streamError, .lineTooShort, .unknownSectionCode, .unknownRecordType,
         .missingRequiredField, .unknownSubsectionCode, .aggregationError:
         nil

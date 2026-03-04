@@ -1,4 +1,14 @@
-name: Build and Test
+# CI Matrix Policy
+#
+# Category A (tools-version 6.2 + macOS 26 min): macos-26 + Swift 6.2
+# Category B (tools-version 6.2 + older macOS):  macos-15 + 6.2, macos-26 + 6.2
+# Category C (tools-version 6.0):                macos-15 + 6.0, macos-15 + 6.2, macos-26 + 6.2
+# Linux (if viable):                             ubuntu + Swift 6.0, ubuntu + Swift 6.2
+#
+# When Swift 6.3 ships: bump 6.0→6.1 and 6.2→6.3 in Category C
+# When bumping tools-version to 6.2: drop 6.0/6.1, move to Category A or B
+
+name: CI
 
 on:
   push:
@@ -7,53 +17,55 @@ on:
     branches: [main]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-test:
+  tests:
     name: Build and Test
-    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-26
+            swift: "6.2"
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Swift
-        uses: swift-actions/setup-swift@v2
+      - uses: actions/checkout@v4
+      - uses: SwiftyLab/setup-swift@latest
         with:
-          swift-version: '6.2'
-
+          swift-version: ${{ matrix.swift }}
       - name: Build
         run: swift build -v
-
-      - name: Run Tests
+      - name: Test
         run: swift test -v
-
-  swiftlint:
-    name: SwiftLint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: SwiftLint
-        uses: norio-nomura/action-swiftlint@3.2.1
-
-  swift-format:
-    name: swift-format
+  test-linux:
+    name: Test on Linux
     runs-on: ubuntu-latest
     container:
       image: swift:6.2
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install swift-format
+      - uses: actions/checkout@v4
+      - name: Build
+        run: swift build -v
+      - name: Test
+        run: swift test -v
+  lint:
+    name: Run Swiftlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: norio-nomura/action-swiftlint@3.2.1
+  swift-format:
+    name: Run swift-format
+    runs-on: ubuntu-latest
+    container:
+      image: swift:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download .swift-format config
         run: |
-          git clone --branch 600.0.0 --depth 1 https://github.com/swiftlang/swift-format.git /tmp/swift-format
-          cd /tmp/swift-format
-          swift build -c release
-          cp /tmp/swift-format/.build/release/swift-format /usr/local/bin/
-
-      - name: Run swift-format
-        run: swift-format lint -r .
+          apt-get update && apt-get install -y wget
+          wget -O .swift-format https://gist.githubusercontent.com/RISCfuture/e0c21afb7bd80a88d128a42bf40d2ecd/raw/.swift-format
+      - name: Run swift-format lint
+        run: swift format lint -r .
