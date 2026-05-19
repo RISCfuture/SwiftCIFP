@@ -117,20 +117,6 @@ struct ApproachContinuationRecord: Sendable {
 
 /// Parser for CIFP fixed-width records.
 struct CIFPByteParser: Sendable {
-  /// Standard CIFP record length.
-  static let recordLength = 132
-
-  /// Common field positions (0-indexed).
-  private static let fields = (
-    recordType: 0..<1,
-    customerArea: 1..<4,
-    sectionCode: 4..<6,
-    airportIdent: 6..<10,
-    icaoRegion: 10..<12,
-    fileRecordNumber: 123..<128,
-    cycleDate: 128..<132
-  )
-
   /// Parse a single record line.
   static func parseRecord(
     _ bytes: ArraySlice<UInt8>,

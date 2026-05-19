@@ -141,18 +141,6 @@ extension BearingRange {
   public static var fullCircle: BearingRange {
     BearingRange(from: 0, to: 360)
   }
-
-  /// Creates a bearing range from a standard Range.
-  init(_ range: Range<Double>) {
-    self.init(from: range.lowerBound, to: range.upperBound)
-  }
-
-  /// Creates a bearing range from a ClosedRange.
-  ///
-  /// Note: The upper bound is treated as exclusive for consistency.
-  init(_ range: ClosedRange<Double>) {
-    self.init(from: range.lowerBound, to: range.upperBound)
-  }
 }
 
 // MARK: - Measurement Support

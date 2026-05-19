@@ -11,16 +11,3 @@ extension ByteInitializable {
     self.init(rawValue: Character(UnicodeScalar(byte)))
   }
 }
-
-/// Protocol for String-based enums that can be initialized from ASCII bytes.
-protocol StringByteInitializable: RawRepresentable where RawValue == String {
-  init?(bytes: some RandomAccessCollection<UInt8>)
-}
-
-extension StringByteInitializable {
-  /// Initialize from ASCII bytes.
-  init?(bytes: some RandomAccessCollection<UInt8>) {
-    guard let string = String(bytes: Array(bytes), encoding: .utf8) else { return nil }
-    self.init(rawValue: string.trimmingCharacters(in: .whitespaces))
-  }
-}
