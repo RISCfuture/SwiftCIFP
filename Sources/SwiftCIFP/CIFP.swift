@@ -30,9 +30,6 @@ import Foundation
 /// use ``linked()`` to create a ``CIFPData`` actor.
 public struct CIFP: Sendable, Codable {
 
-  /// Estimated number of records for pre-allocation.
-  private static let estimatedRecordCount = 400_000
-
   /// The file header information.
   public let header: Header
 
