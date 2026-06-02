@@ -178,7 +178,10 @@ public enum CIFPError: Error, LocalizedError, Sendable {
             #endif
           case .invalidCycleDate:
             #if canImport(Darwin)
-              String(localized: "The cycle date in the header could not be parsed.", bundle: .module)
+              String(
+                localized: "The cycle date in the header could not be parsed.",
+                bundle: .module
+              )
             #else
               "The cycle date in the header could not be parsed."
             #endif
@@ -286,7 +289,8 @@ public enum CIFPError: Error, LocalizedError, Sendable {
             bundle: .module
           )
         #else
-          return "Unknown subsection “\(String(subsection))” in section “\(section)” at line \(line)."
+          return
+            "Unknown subsection “\(String(subsection))” in section “\(section)” at line \(line)."
         #endif
       case let .aggregationError(recordType, identifier, reason):
         let reasonString: String =

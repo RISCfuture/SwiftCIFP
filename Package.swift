@@ -27,7 +27,7 @@ let package = Package(
     .testTarget(
       name: "SwiftCIFPTests",
       dependencies: ["SwiftCIFP"]
-    ),
+    )
   ],
   swiftLanguageModes: [.v5, .v6]
 )
@@ -40,7 +40,7 @@ let package = Package(
         "SwiftCIFP",
         .product(name: "ArgumentParser", package: "swift-argument-parser"),
         .product(name: "ZIPFoundation", package: "ZIPFoundation"),
-        .product(name: "Progress", package: "Progress.swift"),
+        .product(name: "Progress", package: "Progress.swift")
       ]
     )
   )

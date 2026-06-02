@@ -135,7 +135,7 @@ struct CoordinateParserTests {
   func parseAltitudeFeet() throws {
     let bytes: [UInt8] = Array("05000".utf8)
     let alt = try CoordinateParser.parseAltitude(bytes[...])
-    if case .feet(let value, let unit) = alt {
+    if case let .feet(value, unit) = alt {
       #expect(value == 5000)
       #expect(unit == .msl)
     } else {
