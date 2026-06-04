@@ -11,12 +11,6 @@ public struct SID: Sendable, Codable, ProcedureLinkable {
   /// Reference to the parent CIFPData container for model linking.
   public weak var data: CIFPData?
 
-  /// Closure for resolving fix identifiers (internal use).
-  var findFix: FixResolver?
-
-  /// Closure for resolving navaid identifiers (internal use).
-  var findNavaid: NavaidResolver?
-
   /// Parent airport ICAO identifier.
   let airportId: String
 
@@ -72,7 +66,7 @@ public struct SID: Sendable, Codable, ProcedureLinkable {
   private enum CodingKeys: String, CodingKey {
     case airportId, icaoRegion, identifier, routeType
     case transitionId, runwayNames = "runways", legs
-    // Note: 'data', 'findFix', 'findNavaid' are excluded
+    // Note: 'data' is excluded
   }
 }
 
@@ -116,9 +110,6 @@ extension SID {
     findFix: @escaping FixResolver,
     findNavaid: @escaping NavaidResolver
   ) {
-    self.findFix = findFix
-    self.findNavaid = findNavaid
-
     // Inject into all legs
     for i in legs.indices {
       legs[i].findFix = findFix

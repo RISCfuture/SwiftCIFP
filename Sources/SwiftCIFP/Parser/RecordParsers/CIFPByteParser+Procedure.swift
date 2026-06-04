@@ -196,12 +196,8 @@ extension CIFPByteParser {
     lineNumber _: Int
   ) throws -> ParsedRecord {
     let airportIdent = bytes.slice(6..<10).toString()
-    let icaoRegion = bytes.slice(10..<12).toString()
     let procedureIdent = bytes.slice(13..<19).toString()
     let transitionIdent = bytes.slice(20..<25).toString()
-
-    // Reference fix (position 30-34, 0-indexed 29-33)
-    let fixIdent = bytes.slice(29..<34).toString()
 
     // SBAS service level (positions 41-50, 0-indexed 40-49)
     let sbasSlice = bytes.slice(40..<50)
@@ -218,10 +214,8 @@ extension CIFPByteParser {
     return .approachContinuation(
       ApproachContinuationRecord(
         airportId: airportIdent,
-        icaoRegion: icaoRegion,
         procedureId: procedureIdent,
         transitionId: transitionIdent.isEmpty ? nil : transitionIdent,
-        fixId: fixIdent.isEmpty ? nil : fixIdent,
         sbasServiceLevel: sbasServiceLevel,
         requiredNavPerformance: requiredNavPerformance,
         lateralNavCapability: lateralNavCapability

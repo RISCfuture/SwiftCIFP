@@ -1,1 +1,18 @@
 retain_public: true
+
+# The CIFPDataLinkable / ProcedureLinkable / AirwayLinkable protocols are a live
+# linking-architecture design: CIFPData calls injectLegResolvers/injectFixResolvers
+# and sets `data` on conformers. Periphery flags them as "redundant" only because they
+# are never used as existential types, so they carry targeted `// periphery:ignore`
+# comments. In Periphery 3.7.4 such an ignore (which correctly suppresses the
+# redundant-protocol finding) is itself reported as a superfluous ignore comment under
+# --strict, so superfluous-ignore reporting is disabled to retain the architecture.
+superfluous_ignore_comments: false
+
+# ASCII.swift is a deliberately complete byte-constant table (full A-Z, 0-9,
+# punctuation) plus isUpperAlpha/isAlphanumeric helpers. Its currently unused
+# members are intentional, so retain the whole file. (Periphery 3.7.4 does not
+# propagate `// periphery:ignore:all` to an enum's static members, so file-level
+# retention is used instead of a comment directive.)
+retain_files:
+  - "**/Parser/ASCII.swift"

@@ -195,9 +195,6 @@ public struct Airway: Sendable, Codable, AirwayLinkable {
   /// Reference to the parent CIFPData container for model linking.
   public weak var data: CIFPData?
 
-  /// Closure for resolving fix identifiers (internal use).
-  var findFix: FixResolver?
-
   /// The airway identifier (e.g., "V1", "J60", "Q105").
   public let identifier: String
 
@@ -237,7 +234,7 @@ public struct Airway: Sendable, Codable, AirwayLinkable {
 
   private enum CodingKeys: String, CodingKey {
     case identifier, routeType, level, fixes
-    // Note: 'data', 'findFix' are excluded
+    // Note: 'data' is excluded
   }
 }
 
@@ -246,8 +243,6 @@ public struct Airway: Sendable, Codable, AirwayLinkable {
 extension Airway {
   /// Injects fix resolver closures into the airway's fixes.
   mutating func injectFixResolvers(findFix: @escaping FixResolver) {
-    self.findFix = findFix
-
     // Inject into all fixes
     for i in fixes.indices {
       fixes[i].findFix = findFix

@@ -100,7 +100,6 @@ extension CIFPByteParser {
     lineNumber _: Int
   ) throws -> ParsedRecord {
     let airportIdent = bytes.slice(6..<10).toString()
-    let icaoRegion = bytes.slice(10..<12).toString()
     let approachIdent = bytes.slice(13..<19).toString()
     let runwayIdent = bytes.slice(19..<24).toString().trimmingCharacters(in: .whitespaces)
 
@@ -136,7 +135,6 @@ extension CIFPByteParser {
     return .pathPointContinuation(
       PathPointContinuationRecord(
         airportId: airportIdent,
-        icaoRegion: icaoRegion,
         approachId: approachIdent,
         runwayId: runwayIdent,
         fpapEllipsoidHeightFt: fpapEllipsoidHeightFt,

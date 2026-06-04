@@ -11,12 +11,6 @@ public struct Approach: Sendable, Codable, ProcedureLinkable {
   /// Reference to the parent CIFPData container for model linking.
   public weak var data: CIFPData?
 
-  /// Closure for resolving fix identifiers (internal use).
-  var findFix: FixResolver?
-
-  /// Closure for resolving navaid identifiers (internal use).
-  var findNavaid: NavaidResolver?
-
   /// Parent airport ICAO identifier.
   let airportId: String
 
@@ -131,7 +125,7 @@ public struct Approach: Sendable, Codable, ProcedureLinkable {
     case routeType, transitionId, runwayId
     case multipleIndicator, legs, missedApproachLegs
     case sbasServiceLevel, requiredNavPerformance, lateralNavCapability
-    // Note: 'data', 'findFix', 'findNavaid' are excluded
+    // Note: 'data' is excluded
   }
 }
 
@@ -175,9 +169,6 @@ extension Approach {
     findFix: @escaping FixResolver,
     findNavaid: @escaping NavaidResolver
   ) {
-    self.findFix = findFix
-    self.findNavaid = findNavaid
-
     // Inject into approach legs
     for i in legs.indices {
       legs[i].findFix = findFix

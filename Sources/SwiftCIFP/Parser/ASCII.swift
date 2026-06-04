@@ -1,6 +1,14 @@
 import Foundation
 
 /// ASCII byte constants for efficient byte-level parsing.
+///
+/// This is a deliberately complete byte-constant table (full A-Z, 0-9, and
+/// punctuation) plus the `isUpperAlpha`/`isAlphanumeric` helpers. The currently
+/// unused members are retained intentionally so the table stays whole and
+/// callers can reference any byte without piecemeal additions. Whole-file
+/// retention is configured in `.periphery.yml` (`retain_files`) rather than a
+/// comment directive, because Periphery 3.7.4 does not propagate
+/// `// periphery:ignore:all` to an enum's static members.
 @usableFromInline
 enum ASCII {
   @usableFromInline static let LF: UInt8 = 0x0A  // '\n'

@@ -79,7 +79,6 @@ struct HeliportMSARecord: Sendable {
 /// Intermediate path point continuation record for aggregation.
 struct PathPointContinuationRecord: Sendable {
   let airportId: String
-  let icaoRegion: String
   let approachId: String
   let runwayId: String
   let fpapEllipsoidHeightFt: Double?
@@ -106,10 +105,8 @@ struct AirspaceBoundaryRecord: Sendable {
 /// Intermediate approach continuation record for SBAS/LPV data.
 struct ApproachContinuationRecord: Sendable {
   let airportId: String
-  let icaoRegion: String
   let procedureId: String
   let transitionId: String?
-  let fixId: String?
   let sbasServiceLevel: SBASServiceLevel?
   let requiredNavPerformance: RequiredNavPerformance?
   let lateralNavCapability: LateralNavCapability?

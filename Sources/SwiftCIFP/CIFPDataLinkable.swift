@@ -9,6 +9,8 @@ import Foundation
 /// - Note: Conforming types should declare the `data` property as `weak`
 ///   to avoid retain cycles with the parent `CIFPData` actor.
 protocol CIFPDataLinkable {
+  // periphery:ignore - Live linking-architecture requirement; flagged only because the
+  // protocol is never used as an existential type. Conforming models set this property.
   /// Reference to the parent CIFPData container.
   ///
   /// This property is set by `CIFPData` when establishing model links.
@@ -42,6 +44,9 @@ typealias NavaidResolver =
     _ sectionCode: String?
   ) async -> Navaid?
 
+// periphery:ignore - Live linking-architecture protocol; injectLegResolvers is called in
+// CIFPData.swift. Periphery flags it "redundant" only because it is never used as an
+// existential type. Do not collapse into CIFPDataLinkable.
 /// Protocol for procedure models that contain legs requiring closure injection.
 ///
 /// Procedures (SID, STAR, Approach) contain nested `ProcedureLeg` structures
@@ -62,6 +67,9 @@ protocol ProcedureLinkable: CIFPDataLinkable {
   )
 }
 
+// periphery:ignore - Live linking-architecture protocol; injectFixResolvers is called in
+// CIFPData.swift. Periphery flags it "redundant" only because it is never used as an
+// existential type. Do not collapse into CIFPDataLinkable.
 /// Protocol for airway models that contain fixes requiring closure injection.
 ///
 /// Airways contain nested `AirwayFix` structures that need to resolve
