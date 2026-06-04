@@ -290,10 +290,26 @@ struct CycleTests {
     }
   }
 
-  @Test("Cycle effectiveDate")
-  func effectiveDate() {
-    let cycle = Cycle(yymm: "2601")
-    #expect(cycle?.effectiveDate != nil)
+  @Test("Cycle effectiveDate resolves to the correct UTC calendar day")
+  func effectiveDate() throws {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = .gmt
+
+    // AIRAC cycle boundaries are defined in UTC; the resolved date must land on the exact
+    // UTC calendar day regardless of the host's local timezone.
+    let referenceCycle = try #require(Cycle(yymm: "2401"))
+    let referenceDate = try #require(referenceCycle.effectiveDate)
+    #expect(
+      calendar.dateComponents([.year, .month, .day], from: referenceDate)
+        == DateComponents(year: 2024, month: 1, day: 25)
+    )
+
+    let cycle = try #require(Cycle(yymm: "2605"))
+    let effectiveDate = try #require(cycle.effectiveDate)
+    #expect(
+      calendar.dateComponents([.year, .month, .day], from: effectiveDate)
+        == DateComponents(year: 2026, month: 5, day: 14)
+    )
   }
 
   @Test("Cycle navigation with optional returns")

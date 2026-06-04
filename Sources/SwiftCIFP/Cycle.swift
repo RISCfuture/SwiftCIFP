@@ -37,14 +37,21 @@ public struct Cycle: Sendable, Codable, Equatable, Hashable {
 // MARK: - AIRAC Date Calculation
 
 extension Cycle {
+  /// Gregorian calendar anchored to GMT.
+  ///
+  /// AIRAC cycle boundaries are defined in UTC, so all cycle date arithmetic must use a
+  /// GMT calendar. Using a local-timezone calendar would offset computed dates by the
+  /// local UTC offset, landing them on the wrong calendar day when read back in UTC.
+  private static let calendar: Calendar = {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = .gmt
+    return calendar
+  }()
+
   /// AIRAC reference date (January 25, 2024 is cycle 2401).
   private static let referenceDate: Date = {
-    var components = DateComponents()
-    components.year = 2024
-    components.month = 1
-    components.day = 25
-    components.timeZone = .gmt
-    return Calendar(identifier: .gregorian).date(from: components)!
+    let components = DateComponents(timeZone: .gmt, year: 2024, month: 1, day: 25)
+    return calendar.date(from: components)!
   }()
 
   /// AIRAC cycle length in days.
@@ -52,7 +59,6 @@ extension Cycle {
 
   /// The currently effective AIRAC cycle.
   public static var effective: Self {
-    let calendar = Calendar(identifier: .gregorian)
     let now = Date()
 
     let daysSinceRef = calendar.dateComponents([.day], from: referenceDate, to: now).day ?? 0
@@ -67,14 +73,12 @@ extension Cycle {
 
   /// The effective date of this cycle.
   public var effectiveDate: Date? {
-    let calendar = Calendar(identifier: .gregorian)
-
     // Calculate days from reference
     let yearsFromRef = Int(year) - 2024
     let cyclesInPrevYears = yearsFromRef * 13
     let totalCycles = cyclesInPrevYears + Int(cycleNumber) - 1
 
-    return calendar.date(
+    return Self.calendar.date(
       byAdding: .day,
       value: totalCycles * Self.cycleLengthDays,
       to: Self.referenceDate
@@ -86,8 +90,7 @@ extension Cycle {
   /// This is the exact moment the cycle expires, which is also the effective date of the next cycle.
   public var expirationDate: Date? {
     guard let effectiveDate else { return nil }
-    let calendar = Calendar(identifier: .gregorian)
-    return calendar.date(byAdding: .day, value: Self.cycleLengthDays, to: effectiveDate)
+    return Self.calendar.date(byAdding: .day, value: Self.cycleLengthDays, to: effectiveDate)
   }
 
   /// The date range when this cycle is effective.
@@ -175,7 +178,6 @@ extension Cycle {
   /// - Parameter date: The date to find the cycle for.
   /// - Returns: The cycle containing the date, or `nil` if the cycle cannot be determined.
   public static func cycle(for date: Date) -> Self? {
-    let calendar = Calendar(identifier: .gregorian)
     let daysSinceRef = calendar.dateComponents([.day], from: referenceDate, to: date).day ?? 0
 
     // Handle dates before the reference
