@@ -95,11 +95,13 @@ for approach in data.approaches {
 ## When to Use Linked Data
 
 Use `CIFPData` when you need to:
+
 - Navigate between related models (e.g., runway to localizer)
 - Resolve fix identifiers in procedures to actual fix objects
 - Access the coordinate or other properties of procedure fix references
 
 Use the basic `CIFP` struct when you:
+
 - Only need simple lookups by identifier
 - Want minimal memory overhead
 - Don't need to traverse relationships

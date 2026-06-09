@@ -85,6 +85,7 @@ let cifp = try CIFP(data: fileData) { error, lineNumber in
 ```
 
 Errors are reported via `CIFPError` with specific cases for:
+
 - `lineTooShort` - Record doesn't have enough characters
 - `unknownSectionCode` - Unrecognized section in the file
 - `unknownSubsectionCode` - Unrecognized subsection within a section
@@ -283,6 +284,7 @@ swift run SwiftCIFP_E2E -i /path/to/FAACIFP18 -v
 ```
 
 Options:
+
 - `-i, --input <path|url>`: Path or URL to CIFP file (FAACIFP18 or .zip).
 - `-f, --format <summary|json>`: Output format. Defaults to summary.
 - `-v, --verbose`: Show verbose output during parsing.
