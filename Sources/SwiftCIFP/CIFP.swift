@@ -3,7 +3,7 @@ import Foundation
 #if canImport(CoreLocation)
   import CoreLocation
 #endif
-@preconcurrency import RegexBuilder
+import RegexBuilder
 
 /// Container for CIFP (Coded Instrument Flight Procedures) data.
 ///
@@ -361,23 +361,7 @@ func expandRunwayTransitionId(_ transitionId: String) -> [String] {
 
 /// Builder for aggregating parsed records into CIFP.
 private struct CIFPBuilder {
-  // MARK: - Static Regex Patterns
-
-  /// Matches "VOLUME" followed by whitespace and a 4-digit cycle number.
-  nonisolated(unsafe) private static let volumeCycleRegex = Regex {
-    "VOLUME"
-    OneOrMore(.whitespace)
-    Capture { Repeat(.digit, count: 4) }
-  }
-
-  /// Matches a date in DD-MMM-YYYY format (e.g., "15-JAN-2024").
-  nonisolated(unsafe) private static let creationDateRegex = Regex {
-    Repeat(.digit, count: 2)
-    "-"
-    Repeat("A"..."Z", count: 3)
-    "-"
-    Repeat(.digit, count: 4)
-  }
+  // MARK: - Date Parsing
 
   /// Parses the creation date from HDR01.
   private static let creationDateFormatter: DateFormatter = {
@@ -386,6 +370,24 @@ private struct CIFPBuilder {
     formatter.locale = Locale(identifier: "en_US_POSIX")
     return formatter
   }()
+
+  // MARK: - Header-Parsing Patterns
+
+  /// Matches "VOLUME" followed by whitespace and a 4-digit cycle number.
+  private let volumeCycleRegex = Regex {
+    "VOLUME"
+    OneOrMore(.whitespace)
+    Capture { Repeat(.digit, count: 4) }
+  }
+
+  /// Matches a date in DD-MMM-YYYY format (e.g., "15-JAN-2024").
+  private let creationDateRegex = Regex {
+    Repeat(.digit, count: 2)
+    "-"
+    Repeat("A"..."Z", count: 3)
+    "-"
+    Repeat(.digit, count: 4)
+  }
 
   var headerRecords: [HeaderRecord] = []
   var gridMORAs: [GridMORA] = []
@@ -569,7 +571,7 @@ private struct CIFPBuilder {
     }
     // Fall back to looking for "VOLUME XXXX" pattern
     for text in headerText {
-      guard let match = text.firstMatch(of: Self.volumeCycleRegex) else { continue }
+      guard let match = text.firstMatch(of: volumeCycleRegex) else { continue }
       let cycleStr = String(match.1)
       guard let c = Cycle(yymm: cycleStr) else { continue }
       return c
@@ -1080,7 +1082,7 @@ private struct CIFPBuilder {
 
   private func parseCreationDate(from hdr01: String) -> DateComponents? {
     // Look for DD-MMM-YYYY pattern
-    guard let match = hdr01.firstMatch(of: Self.creationDateRegex) else {
+    guard let match = hdr01.firstMatch(of: creationDateRegex) else {
       return nil
     }
     let dateStr = String(match.0)
