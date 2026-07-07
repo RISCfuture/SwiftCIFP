@@ -1,5 +1,15 @@
 # Change Log
 
+## [1.2.0] - 2026-07-06
+
+### Added
+
+- Linux support. `URLSession` is guarded behind `FoundationNetworking`, a
+  `String(localized:)` shim covers error strings, and numeric interpolation in
+  error messages uses `.formatted(.number)` in place of the Linux-unavailable
+  `\(value, format:)` sugar. The end-to-end tool's progress display now polls
+  `Progress.fractionCompleted` instead of using KVO (unavailable on Linux).
+
 ## [1.1.0] - 2026-06-26
 
 ### Changed
