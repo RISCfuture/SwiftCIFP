@@ -143,10 +143,13 @@ struct SwiftCIFP_E2E: AsyncParsableCommand {
 // MARK: - ProgressTracker
 
 /// Actor to safely track progress using Progress.swift library.
+///
+/// Polls `fractionCompleted` on a timer rather than observing it via KVO, since
+/// `NSKeyValueObservation` requires the Objective-C runtime and isn't available on Linux.
 private actor ProgressTracker {
   private var bar: ProgressBar
   private var lastPercent = 0
-  private var observation: NSKeyValueObservation?
+  private var pollTask: Task<Void, Never>?
 
   init() {
     bar = ProgressBar(
@@ -160,9 +163,12 @@ private actor ProgressTracker {
   }
 
   func track(_ progress: Foundation.Progress) {
-    observation = progress.observe(\.fractionCompleted, options: [.new]) { prog, _ in
-      let newPercent = Int(prog.fractionCompleted * 100)
-      Task { await self.update(to: newPercent) }
+    pollTask = Task {
+      while !Task.isCancelled, !progress.isFinished {
+        update(to: Int(progress.fractionCompleted * 100))
+        try? await Task.sleep(for: .milliseconds(50))
+      }
+      update(to: Int(progress.fractionCompleted * 100))
     }
   }
 
@@ -174,7 +180,7 @@ private actor ProgressTracker {
   }
 
   func stop() {
-    observation?.invalidate()
-    observation = nil
+    pollTask?.cancel()
+    pollTask = nil
   }
 }

@@ -39,17 +39,15 @@ let package = Package(
   swiftLanguageModes: [.v5, .v6]
 )
 
-#if os(macOS)
-  package.targets.append(
-    .executableTarget(
-      name: "SwiftCIFP_E2E",
-      dependencies: [
-        "SwiftCIFP",
-        .product(name: "ArgumentParser", package: "swift-argument-parser"),
-        .product(name: "ZIPFoundation", package: "ZIPFoundation"),
-        .product(name: "Progress", package: "Progress.swift")
-      ],
-      swiftSettings: approachableConcurrency
-    )
+package.targets.append(
+  .executableTarget(
+    name: "SwiftCIFP_E2E",
+    dependencies: [
+      "SwiftCIFP",
+      .product(name: "ArgumentParser", package: "swift-argument-parser"),
+      .product(name: "ZIPFoundation", package: "ZIPFoundation"),
+      .product(name: "Progress", package: "Progress.swift")
+    ],
+    swiftSettings: approachableConcurrency
   )
-#endif
+)
