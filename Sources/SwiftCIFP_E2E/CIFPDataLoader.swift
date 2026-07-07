@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+  import FoundationNetworking
+#endif
 import SwiftCIFP
 
 /// Protocol for loading CIFP data from various sources.
