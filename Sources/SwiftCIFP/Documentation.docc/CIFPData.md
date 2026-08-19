@@ -1,9 +1,5 @@
 # ``CIFPData``
 
-@Metadata {
-  @DocumentationExtension(mergeBehavior: append)
-}
-
 ## Topics
 
 ### Creating CIFPData

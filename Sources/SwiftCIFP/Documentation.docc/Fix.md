@@ -1,9 +1,5 @@
 # ``Fix``
 
-@Metadata {
-  @DocumentationExtension(mergeBehavior: append)
-}
-
 ## Topics
 
 ### Cases

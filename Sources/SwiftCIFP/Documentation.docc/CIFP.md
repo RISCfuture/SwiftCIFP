@@ -1,16 +1,12 @@
 # ``CIFP``
 
-@Metadata {
-  @DocumentationExtension(mergeBehavior: append)
-}
-
 ## Topics
 
 ### Parsing CIFP Data
 
-- ``init(data:errorCallback:)``
-- ``init(url:errorCallback:)``
-- ``init(bytes:errorCallback:)``
+- ``init(data:progressHandler:errorCallback:)``
+- ``init(url:progressHandler:errorCallback:)``
+- ``init(bytes:totalBytes:progressHandler:errorCallback:)``
 
 ### Creating Linked Data
 

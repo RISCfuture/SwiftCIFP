@@ -1,9 +1,5 @@
 # ``Approach``
 
-@Metadata {
-  @DocumentationExtension(mergeBehavior: append)
-}
-
 ## Topics
 
 ### Identification

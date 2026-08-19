@@ -1,9 +1,5 @@
 # ``VHFNavaid``
 
-@Metadata {
-  @DocumentationExtension(mergeBehavior: append)
-}
-
 ## Topics
 
 ### Identification

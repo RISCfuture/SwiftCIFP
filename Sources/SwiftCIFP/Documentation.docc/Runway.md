@@ -1,9 +1,5 @@
 # ``Runway``
 
-@Metadata {
-  @DocumentationExtension(mergeBehavior: append)
-}
-
 ## Topics
 
 ### Identification
