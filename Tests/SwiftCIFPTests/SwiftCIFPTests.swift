@@ -9,26 +9,26 @@ import Testing
 
 // MARK: - Coordinate Tests
 
-@Suite("Coordinate")
-struct CoordinateTests {
-  @Test("Coordinate initialization")
-  func initialization() {
+@Suite
+struct `Coordinate tests` {
+  @Test
+  func `stores latitude and longitude in degrees`() {
     let coord = Coordinate(latitudeDeg: 33.9425, longitudeDeg: -118.4081)
     #expect(coord.latitudeDeg == 33.9425)
     #expect(coord.longitudeDeg == -118.4081)
   }
 
   #if canImport(CoreLocation)
-    @Test("Coordinate from CoreLocation")
-    func fromCoreLocation() {
+    @Test
+    func `converts from a CoreLocation coordinate`() {
       let clCoord = CLLocationCoordinate2D(latitude: 40.6413, longitude: -73.7781)
       let coord = Coordinate(clCoord)
       #expect(coord.latitudeDeg == 40.6413)
       #expect(coord.longitudeDeg == -73.7781)
     }
 
-    @Test("Coordinate to CoreLocation")
-    func toCoreLocation() {
+    @Test
+    func `converts to a CoreLocation coordinate`() {
       let coord = Coordinate(latitudeDeg: 51.4700, longitudeDeg: -0.4543)
       let clCoord = coord.coreLocation
       #expect(clCoord.latitude == 51.4700)
@@ -36,8 +36,8 @@ struct CoordinateTests {
     }
   #endif
 
-  @Test("Coordinate description")
-  func description() {
+  @Test
+  func `describes itself with hemisphere letters`() {
     let coord = Coordinate(latitudeDeg: 33.9425, longitudeDeg: -118.4081)
     #expect(coord.description.contains("N"))
     #expect(coord.description.contains("W"))
@@ -46,10 +46,10 @@ struct CoordinateTests {
 
 // MARK: - CoordinateParser Tests
 
-@Suite("CoordinateParser")
-struct CoordinateParserTests {
-  @Test("Parse latitude - north")
-  func parseLatitudeNorth() {
+@Suite
+struct `CoordinateParser tests` {
+  @Test
+  func `parses a northern latitude`() {
     // N38421448 = 38° 42' 14.48" N
     let bytes: [UInt8] = Array("N38421448".utf8)
     let lat = CoordinateParser.parseLatitude(bytes[...])
@@ -59,8 +59,8 @@ struct CoordinateParserTests {
     }
   }
 
-  @Test("Parse latitude - south")
-  func parseLatitudeSouth() {
+  @Test
+  func `parses a southern latitude as negative`() {
     // S33563000 = 33° 56' 30.00" S = -33.9417
     let bytes: [UInt8] = Array("S33563000".utf8)
     let lat = CoordinateParser.parseLatitude(bytes[...])
@@ -71,8 +71,8 @@ struct CoordinateParserTests {
     }
   }
 
-  @Test("Parse longitude - west")
-  func parseLongitudeWest() {
+  @Test
+  func `parses a western longitude as negative`() {
     // W118244500 = 118° 24' 45.00" W = -118.4125
     let bytes: [UInt8] = Array("W118244500".utf8)
     let lon = CoordinateParser.parseLongitude(bytes[...])
@@ -83,8 +83,8 @@ struct CoordinateParserTests {
     }
   }
 
-  @Test("Parse longitude - east")
-  func parseLongitudeEast() {
+  @Test
+  func `parses an eastern longitude as positive`() {
     // E000274500 = 0° 27' 45.00" E = 0.4625
     let bytes: [UInt8] = Array("E000274500".utf8)
     let lon = CoordinateParser.parseLongitude(bytes[...])
@@ -95,8 +95,8 @@ struct CoordinateParserTests {
     }
   }
 
-  @Test("Parse full coordinate")
-  func parseFullCoordinate() {
+  @Test
+  func `parses a combined latitude and longitude field`() {
     // N33564847W118244290 = 33.9467..° N, 118.4119..° W
     let bytes: [UInt8] = Array("N33564847W118244290".utf8)
     let coord = CoordinateParser.parseCoordinate(bytes[...])
@@ -107,8 +107,8 @@ struct CoordinateParserTests {
     }
   }
 
-  @Test("Parse magnetic variation - east")
-  func parseMagneticVariationEast() {
+  @Test
+  func `parses an east magnetic variation as positive`() {
     let bytes: [UInt8] = Array("E0130".utf8)
     let magVar = CoordinateParser.parseMagneticVariation(bytes[...])
     #expect(magVar != nil)
@@ -119,8 +119,8 @@ struct CoordinateParserTests {
     }
   }
 
-  @Test("Parse magnetic variation - west")
-  func parseMagneticVariationWest() {
+  @Test
+  func `parses a west magnetic variation as negative`() {
     let bytes: [UInt8] = Array("W0145".utf8)
     let magVar = CoordinateParser.parseMagneticVariation(bytes[...])
     #expect(magVar != nil)
@@ -131,8 +131,8 @@ struct CoordinateParserTests {
     }
   }
 
-  @Test("Parse altitude - feet")
-  func parseAltitudeFeet() throws {
+  @Test
+  func `parses an altitude in feet MSL`() throws {
     let bytes: [UInt8] = Array("05000".utf8)
     let alt = try CoordinateParser.parseAltitude(bytes[...])
     if case let .feet(value, unit) = alt {
@@ -143,8 +143,8 @@ struct CoordinateParserTests {
     }
   }
 
-  @Test("Parse altitude - flight level")
-  func parseAltitudeFlightLevel() throws {
+  @Test
+  func `parses a flight level altitude`() throws {
     let bytes: [UInt8] = Array("FL350".utf8)
     let alt = try CoordinateParser.parseAltitude(bytes[...])
     if case .flightLevel(let value) = alt {
@@ -154,16 +154,16 @@ struct CoordinateParserTests {
     }
   }
 
-  @Test("Parse course")
-  func parseCourse() {
+  @Test
+  func `parses a course in tenths of a degree`() {
     let bytes: [UInt8] = Array("0900".utf8)
     let course = CoordinateParser.parseCourse(bytes[...])
     #expect(course != nil)
     #expect(course == 90.0)
   }
 
-  @Test("Parse distance")
-  func parseDistance() {
+  @Test
+  func `parses a distance in tenths of a nautical mile`() {
     let bytes: [UInt8] = Array("0150".utf8)
     let distance = CoordinateParser.parseDistance(bytes[...])
     #expect(distance != nil)
@@ -173,31 +173,31 @@ struct CoordinateParserTests {
 
 // MARK: - ByteParsing Tests
 
-@Suite("ByteParsing")
-struct ByteParsingTests {
-  @Test("Parse integer")
-  func parseInt() {
+@Suite
+struct `ByteParsing tests` {
+  @Test
+  func `parses an integer with leading whitespace`() {
     let bytes: [UInt8] = Array("  123".utf8)
     let value = bytes[...].parseInt()
     #expect(value == 123)
   }
 
-  @Test("Parse negative integer")
-  func parseNegativeInt() {
+  @Test
+  func `parses a negative integer`() {
     let bytes: [UInt8] = Array("-456".utf8)
     let value = bytes[...].parseInt()
     #expect(value == -456)
   }
 
-  @Test("Parse unsigned integer")
-  func parseUInt() {
+  @Test
+  func `parses an unsigned integer`() {
     let bytes: [UInt8] = Array("99999".utf8)
     let value = bytes[...].parseUInt()
     #expect(value == 99999)
   }
 
-  @Test("Parse double")
-  func parseDouble() {
+  @Test
+  func `parses a double`() {
     let bytes: [UInt8] = Array("123.45".utf8)
     let value = bytes[...].parseDouble()
     #expect(value != nil)
@@ -206,34 +206,34 @@ struct ByteParsingTests {
     }
   }
 
-  @Test("toString trims whitespace")
-  func toStringTrims() {
+  @Test
+  func `trims whitespace when converting to a string`() {
     let bytes: [UInt8] = Array("  hello  ".utf8)
     let str = bytes[...].toString()
     #expect(str == "hello")
   }
 
-  @Test("toRawString preserves whitespace")
-  func toRawStringPreserves() {
+  @Test
+  func `preserves whitespace in a raw string`() {
     let bytes: [UInt8] = Array("P ".utf8)
     let str = bytes[...].toRawString()
     #expect(str == "P ")
   }
 
-  @Test("isBlank detects blank")
-  func isBlankTrue() {
+  @Test
+  func `reports an all-whitespace slice as blank`() {
     let bytes: [UInt8] = Array("     ".utf8)
     #expect(bytes[...].isBlank())
   }
 
-  @Test("isBlank detects non-blank")
-  func isBlankFalse() {
+  @Test
+  func `reports a slice with content as not blank`() {
     let bytes: [UInt8] = Array("  X  ".utf8)
     #expect(!bytes[...].isBlank())
   }
 
-  @Test("slice extracts correct range")
-  func sliceRange() {
+  @Test
+  func `slices a byte range`() {
     let bytes: [UInt8] = Array("HELLO WORLD".utf8)
     let slice = bytes[...].slice(6..<11)
     #expect(slice.toString() == "WORLD")
@@ -242,17 +242,17 @@ struct ByteParsingTests {
 
 // MARK: - Altitude Tests
 
-@Suite("Altitude")
-struct AltitudeTests {
-  @Test("Altitude feet value")
-  func feetValue() {
+@Suite
+struct `Altitude tests` {
+  @Test
+  func `reports a feet altitude and its datum`() {
     let alt = Altitude.feet(1000, .msl)
     #expect(alt.feetValue == 1000)
     #expect(alt.datum == .msl)
   }
 
-  @Test("Altitude feet measurement")
-  func feetMeasurement() {
+  @Test
+  func `converts a feet altitude to meters`() {
     let alt = Altitude.feet(1000, .msl)
     if let measurement = alt.measurement {
       // 1000 feet in meters is approximately 304.8
@@ -263,14 +263,14 @@ struct AltitudeTests {
     }
   }
 
-  @Test("Altitude flight level in feet")
-  func flightLevelInFeet() {
+  @Test
+  func `converts a flight level to feet`() {
     let alt = Altitude.flightLevel(350)
     #expect(alt.feetValue == 35000)
   }
 
-  @Test("Altitude ground")
-  func ground() {
+  @Test
+  func `reports no feet value for a ground altitude`() {
     let alt = Altitude.ground
     #expect(alt.feetValue == nil)
   }
@@ -278,10 +278,10 @@ struct AltitudeTests {
 
 // MARK: - Cycle Tests
 
-@Suite("Cycle")
-struct CycleTests {
-  @Test("Cycle from YYMM")
-  func fromYYMM() {
+@Suite
+struct `Cycle tests` {
+  @Test
+  func `parses a YYMM cycle identifier`() {
     let cycle = Cycle(yymm: "2601")
     #expect(cycle != nil)
     if let cycle {
@@ -290,8 +290,8 @@ struct CycleTests {
     }
   }
 
-  @Test("Cycle effectiveDate resolves to the correct UTC calendar day")
-  func effectiveDate() throws {
+  @Test
+  func `resolves the effective date to the correct UTC calendar day`() throws {
     var calendar = Calendar(identifier: .gregorian)
     calendar.timeZone = .gmt
 
@@ -312,8 +312,8 @@ struct CycleTests {
     )
   }
 
-  @Test("Cycle navigation with optional returns")
-  func navigation() {
+  @Test
+  func `navigates to the next and previous cycles across a year boundary`() {
     let cycle = Cycle(yymm: "2501")
     #expect(cycle != nil)
     if let cycle {
@@ -324,15 +324,15 @@ struct CycleTests {
     }
   }
 
-  @Test("Cycle effective returns currently effective cycle")
-  func effectiveCycle() {
+  @Test
+  func `returns the currently effective cycle`() {
     let effective = Cycle.effective
     #expect(effective.isEffective)
     #expect(effective.cycleNumber >= 1 && effective.cycleNumber <= 13)
   }
 
-  @Test("Cycle cycle(for:) returns correct cycle")
-  func cycleForDate() {
+  @Test
+  func `finds the cycle covering a given date`() {
     // Use the reference date (Jan 25, 2024 is cycle 2401)
     var calendar = Calendar(identifier: .gregorian)
     calendar.timeZone = .gmt
@@ -346,8 +346,8 @@ struct CycleTests {
     #expect(cycle?.cycleNumber == 1)
   }
 
-  @Test("Cycle dateRange covers full cycle")
-  func dateRange() {
+  @Test
+  func `covers a 28-day date range`() {
     let cycle = Cycle(yymm: "2501")
     #expect(cycle != nil)
     if let cycle {
@@ -360,8 +360,8 @@ struct CycleTests {
     }
   }
 
-  @Test("Cycle contains returns true for date within cycle")
-  func containsDateWithinCycle() {
+  @Test
+  func `contains a date inside the cycle`() {
     let cycle = Cycle(yymm: "2501")
     #expect(cycle != nil)
     if let cycle, let effectiveDate = cycle.effectiveDate {
@@ -373,8 +373,8 @@ struct CycleTests {
     }
   }
 
-  @Test("Cycle contains returns false for date outside cycle")
-  func containsDateOutsideCycle() {
+  @Test
+  func `does not contain a date past the cycle`() {
     let cycle = Cycle(yymm: "2501")
     #expect(cycle != nil)
     if let cycle, let effectiveDate = cycle.effectiveDate {
@@ -386,8 +386,8 @@ struct CycleTests {
     }
   }
 
-  @Test("Cycle expirationDate returns exact moment")
-  func expirationDateExactMoment() {
+  @Test
+  func `expires at the next cycle's effective date`() {
     let cycle = Cycle(yymm: "2501")
     #expect(cycle != nil)
     if let cycle {
@@ -399,8 +399,8 @@ struct CycleTests {
     }
   }
 
-  @Test("Cycle comparison")
-  func comparison() {
+  @Test
+  func `orders cycles chronologically`() {
     let older = Cycle(yymm: "2501")
     let newer = Cycle(yymm: "2502")
     let same = Cycle(yymm: "2501")
@@ -412,8 +412,8 @@ struct CycleTests {
     }
   }
 
-  @Test("Cycle isEffective returns true for effective cycle")
-  func isEffective() {
+  @Test
+  func `reports the effective cycle as effective`() {
     let effective = Cycle.effective
     #expect(effective.isEffective)
 
@@ -427,10 +427,10 @@ struct CycleTests {
 
 // MARK: - PathTerminator Tests
 
-@Suite("PathTerminator")
-struct PathTerminatorTests {
-  @Test("PathTerminator from raw value")
-  func fromRawValue() {
+@Suite
+struct `PathTerminator tests` {
+  @Test
+  func `maps raw values to path terminators`() {
     let tf = PathTerminator(rawValue: "TF")
     #expect(tf == .trackToFix)
 
@@ -441,8 +441,8 @@ struct PathTerminatorTests {
     #expect(df == .directToFix)
   }
 
-  @Test("PathTerminator unknown")
-  func unknown() {
+  @Test
+  func `returns nil for an unknown raw value`() {
     let unknown = PathTerminator(rawValue: "XX")
     #expect(unknown == nil)
   }
@@ -450,10 +450,10 @@ struct PathTerminatorTests {
 
 // MARK: - Model Codable Tests
 
-@Suite("Codable")
-struct CodableTests {
-  @Test("Coordinate round-trip")
-  func coordinateRoundTrip() throws {
+@Suite
+struct `Codable tests` {
+  @Test
+  func `round-trips a coordinate`() throws {
     let coord = Coordinate(latitudeDeg: 33.9425, longitudeDeg: -118.4081)
     let data = try JSONEncoder().encode(coord)
     let decoded = try JSONDecoder().decode(Coordinate.self, from: data)
@@ -461,8 +461,8 @@ struct CodableTests {
     #expect(decoded.longitude == coord.longitude)
   }
 
-  @Test("Altitude round-trip")
-  func altitudeRoundTrip() throws {
+  @Test
+  func `round-trips every altitude case`() throws {
     let altitudes: [Altitude] = [.feet(5000, .msl), .feet(1000, .agl), .flightLevel(350), .ground]
     for alt in altitudes {
       let data = try JSONEncoder().encode(alt)
@@ -471,8 +471,8 @@ struct CodableTests {
     }
   }
 
-  @Test("MagneticVariation round-trip")
-  func magVarRoundTrip() throws {
+  @Test
+  func `round-trips a magnetic variation`() throws {
     let magVar = MagneticVariation(direction: .west, degrees: 14.5)
     let data = try JSONEncoder().encode(magVar)
     let decoded = try JSONDecoder().decode(MagneticVariation.self, from: data)
@@ -483,23 +483,23 @@ struct CodableTests {
 
 // MARK: - ByteInitializable Tests
 
-@Suite("ByteInitializable")
-struct ByteInitializableTests {
-  @Test("RecordType from byte")
-  func recordTypeFromByte() {
+@Suite
+struct `ByteInitializable tests` {
+  @Test
+  func `initializes RecordType from a byte`() {
     #expect(RecordType(byte: 0x53) == .standard)
     #expect(RecordType(byte: 0x48) == .header)
     #expect(RecordType(byte: 0x54) == .tailored)
   }
 
-  @Test("TurnDirection from byte")
-  func turnDirectionFromByte() {
+  @Test
+  func `initializes TurnDirection from a byte`() {
     #expect(TurnDirection(byte: 0x4C) == .left)
     #expect(TurnDirection(byte: 0x52) == .right)
   }
 
-  @Test("ILSCategory from byte")
-  func ilsCategoryFromByte() {
+  @Test
+  func `initializes ILSCategory from a byte`() {
     #expect(ILSCategory(byte: 0x31) == .catI)
     #expect(ILSCategory(byte: 0x32) == .catII)
   }
@@ -507,10 +507,10 @@ struct ByteInitializableTests {
 
 // MARK: - Fix Tests
 
-@Suite("Fix")
-struct FixTests {
-  @Test("Fix identifier from VHF navaid")
-  func vhfNavaidIdentifier() {
+@Suite
+struct `Fix tests` {
+  @Test
+  func `reports the identifier and coordinate of a VHF navaid fix`() {
     let navaid = VHFNavaid(
       identifier: "LAX",
       icaoRegion: "K2",
@@ -530,8 +530,8 @@ struct FixTests {
     #expect(fix.coordinate?.latitudeDeg == 33.9425)
   }
 
-  @Test("Fix identifier from NDB navaid")
-  func ndbNavaidIdentifier() {
+  @Test
+  func `reports the identifier of an NDB navaid fix`() {
     let ndb = NDBNavaid(
       identifier: "SLI",
       icaoRegion: "K2",
@@ -545,8 +545,8 @@ struct FixTests {
     #expect(fix.identifier == "SLI")
   }
 
-  @Test("Fix identifier from enroute waypoint")
-  func enrouteWaypointIdentifier() {
+  @Test
+  func `reports the identifier of an enroute waypoint fix`() {
     let waypoint = EnrouteWaypoint(
       identifier: "DAGGR",
       icaoRegion: "K2",
@@ -560,8 +560,8 @@ struct FixTests {
     #expect(fix.identifier == "DAGGR")
   }
 
-  @Test("Fix identifier from terminal waypoint")
-  func terminalWaypointIdentifier() {
+  @Test
+  func `reports the identifier of a terminal waypoint fix`() {
     let waypoint = TerminalWaypoint(
       airportId: "KLAX",
       icaoRegion: "K2",
@@ -580,10 +580,10 @@ struct FixTests {
 
 // MARK: - Navaid Tests
 
-@Suite("Navaid")
-struct NavaidTests {
-  @Test("Navaid identifier from VHF")
-  func vhfIdentifier() {
+@Suite
+struct `Navaid tests` {
+  @Test
+  func `reports the identifier of a VHF navaid`() {
     let navaid = VHFNavaid(
       identifier: "SLI",
       icaoRegion: "K2",
@@ -602,8 +602,8 @@ struct NavaidTests {
     #expect(nav.identifier == "SLI")
   }
 
-  @Test("Navaid identifier from NDB")
-  func ndbIdentifier() {
+  @Test
+  func `reports the identifier of an NDB navaid`() {
     let ndb = NDBNavaid(
       identifier: "ABC",
       icaoRegion: "K2",
@@ -620,39 +620,39 @@ struct NavaidTests {
 
 // MARK: - Runway Transition Tests
 
-@Suite("Runway Transition Expansion")
-struct RunwayTransitionExpansionTests {
-  @Test("Non-B suffix passes through unchanged")
-  func nonBSuffix() {
+@Suite
+struct `runway transition expansion` {
+  @Test
+  func `passes a plain runway transition through unchanged`() {
     let result = expandRunwayTransitionId("RW15")
     #expect(result == ["RW15"])
   }
 
-  @Test("L/R suffix passes through unchanged")
-  func lrSuffix() {
+  @Test
+  func `passes an L or R suffix through unchanged`() {
     let resultL = expandRunwayTransitionId("RW24L")
     #expect(resultL == ["RW24L"])
     let resultR = expandRunwayTransitionId("RW24R")
     #expect(resultR == ["RW24R"])
   }
 
-  @Test("B suffix expands to L and R")
-  func bSuffixExpands() {
+  @Test
+  func `expands a B suffix into L and R`() {
     let result = expandRunwayTransitionId("RW24B")
     #expect(Set(result) == ["RW24L", "RW24R"])
   }
 
-  @Test("B suffix with single-digit runway")
-  func bSuffixSingleDigit() {
+  @Test
+  func `expands a B suffix on a zero-padded runway number`() {
     let result = expandRunwayTransitionId("RW06B")
     #expect(Set(result) == ["RW06L", "RW06R"])
   }
 }
 
-@Suite("SID Runway Names")
-struct SIDRunwayNameTests {
-  @Test("SID stores runway names matching Runway.name format")
-  func runwayNamesFormat() {
+@Suite
+struct `SID runway names` {
+  @Test
+  func `stores runway names in the Runway.name format`() {
     let sid = SID(
       airportId: "KASE",
       icaoRegion: "K2",
@@ -666,8 +666,8 @@ struct SIDRunwayNameTests {
     #expect(sid.runwayNames.count == 1)
   }
 
-  @Test("SID with expanded B suffix runway names")
-  func expandedBSuffix() {
+  @Test
+  func `stores every runway name expanded from a B suffix`() {
     let sid = SID(
       airportId: "KLAX",
       icaoRegion: "K2",
@@ -683,10 +683,10 @@ struct SIDRunwayNameTests {
   }
 }
 
-@Suite("STAR Runway Names")
-struct STARRunwayNameTests {
-  @Test("STAR stores runway names matching Runway.name format")
-  func runwayNamesFormat() {
+@Suite
+struct `STAR runway names` {
+  @Test
+  func `stores runway names in the Runway.name format`() {
     let star = STAR(
       airportId: "KLAX",
       icaoRegion: "K2",
@@ -703,10 +703,10 @@ struct STARRunwayNameTests {
 
 // MARK: - CIFPData Tests
 
-@Suite("CIFPData")
-struct CIFPDataTests {
-  @Test("CIFPData resolves VHF navaid fix")
-  func resolveVHFNavaidFix() async {
+@Suite
+struct `CIFPData tests` {
+  @Test
+  func `resolves a VHF navaid fix`() async {
     let navaid = VHFNavaid(
       identifier: "LAX",
       icaoRegion: "K2",
@@ -738,8 +738,8 @@ struct CIFPDataTests {
     }
   }
 
-  @Test("CIFPData resolves NDB navaid fix")
-  func resolveNDBNavaidFix() async {
+  @Test
+  func `resolves an NDB navaid fix`() async {
     let ndb = NDBNavaid(
       identifier: "SLI",
       icaoRegion: "K2",
@@ -766,8 +766,8 @@ struct CIFPDataTests {
     }
   }
 
-  @Test("CIFPData resolves enroute waypoint fix")
-  func resolveEnrouteWaypointFix() async {
+  @Test
+  func `resolves an enroute waypoint fix`() async {
     let waypoint = EnrouteWaypoint(
       identifier: "DAGGR",
       icaoRegion: "K2",
@@ -794,8 +794,8 @@ struct CIFPDataTests {
     }
   }
 
-  @Test("CIFPData resolves terminal waypoint fix")
-  func resolveTerminalWaypointFix() async {
+  @Test
+  func `resolves a terminal waypoint fix`() async {
     let waypoint = TerminalWaypoint(
       airportId: "KLAX",
       icaoRegion: "K2",
@@ -825,8 +825,8 @@ struct CIFPDataTests {
     }
   }
 
-  @Test("CIFPData resolves fix without section code")
-  func resolveFixWithoutSectionCode() async {
+  @Test
+  func `resolves a fix without a section code`() async {
     let waypoint = EnrouteWaypoint(
       identifier: "DAGGR",
       icaoRegion: "K2",
@@ -854,8 +854,8 @@ struct CIFPDataTests {
     }
   }
 
-  @Test("CIFPData resolves navaid")
-  func resolveNavaid() async {
+  @Test
+  func `resolves a navaid by section code`() async {
     let navaid = VHFNavaid(
       identifier: "LAX",
       icaoRegion: "K2",
@@ -887,8 +887,8 @@ struct CIFPDataTests {
     }
   }
 
-  @Test("CIFPData returns nil for unknown fix")
-  func unknownFix() async {
+  @Test
+  func `returns nil for an unknown fix`() async {
     let data = CIFPData(
       vhfNavaids: [:],
       ndbNavaids: [:],
