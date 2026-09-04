@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// Represents an altitude value which can be expressed in different formats.
 ///

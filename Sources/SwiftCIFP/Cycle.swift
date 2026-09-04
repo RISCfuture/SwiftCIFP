@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// AIRAC (Aeronautical Information Regulation and Control) cycle.
 ///

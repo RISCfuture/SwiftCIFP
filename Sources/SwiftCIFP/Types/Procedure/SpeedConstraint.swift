@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// Speed limit description code.
 enum SpeedLimitDescription: Character, Sendable, Codable, CaseIterable, ByteInitializable {

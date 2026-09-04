@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// MSA (Minimum Sector Altitude) sector.
 public struct MSASector: Sendable, Codable, Hashable {

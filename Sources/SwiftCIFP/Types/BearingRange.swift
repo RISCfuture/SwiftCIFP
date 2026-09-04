@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// A range of compass bearings that properly handles wrap-around at 360°.
 ///

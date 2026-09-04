@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// Airway route type.
 public enum AirwayRouteType: Character, Sendable, Codable, CaseIterable, ByteInitializable {

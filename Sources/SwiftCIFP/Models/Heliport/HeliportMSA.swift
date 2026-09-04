@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// Heliport MSA record.
 public struct HeliportMSA: Sendable, Codable, CIFPDataLinkable {

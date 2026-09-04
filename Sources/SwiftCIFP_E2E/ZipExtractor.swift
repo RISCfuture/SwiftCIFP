@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 import ZIPFoundation
 
 /// Errors that can occur during ZIP extraction.

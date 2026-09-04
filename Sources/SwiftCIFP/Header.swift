@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// CIFP file data type indicator.
 public enum FileType: String, Sendable, Codable, Equatable, Hashable {

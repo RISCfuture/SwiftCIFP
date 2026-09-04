@@ -1,7 +1,7 @@
-import Foundation
+public import Foundation
 
 #if canImport(CoreLocation)
-  import CoreLocation
+  public import CoreLocation
 #endif
 
 /// Grid MORA (Minimum Off-Route Altitude) record for a single 1°×1° grid square.
