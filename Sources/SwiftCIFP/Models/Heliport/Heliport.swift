@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// Heliport reference record.
 public struct Heliport: Sendable, Codable, CIFPDataLinkable {

@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// Direction of magnetic variation.
 public enum MagVarDirection: Character, Sendable, Codable, CaseIterable, ByteInitializable {

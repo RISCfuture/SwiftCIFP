@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// A segment of an airspace boundary.
 public struct AirspaceBoundary: Sendable, Codable, Equatable, Hashable {

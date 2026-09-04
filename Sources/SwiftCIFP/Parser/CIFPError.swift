@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// Reasons why record aggregation can fail during CIFP building.
 public enum AggregationErrorReason: Sendable {
@@ -66,7 +66,7 @@ public enum CIFPError: Error, LocalizedError, Sendable {
   case fileNotFound(URL)
 
   /// An error occurred while reading the stream.
-  case streamError(Error)
+  case streamError(any Error)
 
   /// The line is too short to parse.
   case lineTooShort(expected: Int, actual: Int, line: Int)

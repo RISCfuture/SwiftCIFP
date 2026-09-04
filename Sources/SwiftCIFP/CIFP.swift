@@ -1,7 +1,7 @@
-import Foundation
+public import Foundation
 
 #if canImport(CoreLocation)
-  import CoreLocation
+  public import CoreLocation
 #endif
 import RegexBuilder
 
@@ -107,7 +107,7 @@ public struct CIFP: Sendable, Codable {
   public init(
     data: Data,
     progressHandler: @Sendable (Progress) -> Void = { _ in },
-    errorCallback: ((Error, Int?) -> Void)? = nil
+    errorCallback: ((any Error, Int?) -> Void)? = nil
   ) throws {
     var builder = CIFPBuilder()
 
@@ -161,7 +161,7 @@ public struct CIFP: Sendable, Codable {
     bytes: S,
     totalBytes: Int64? = nil,
     progressHandler: @Sendable (Progress) -> Void = { _ in },
-    errorCallback: ((Error, Int?) -> Void)? = nil
+    errorCallback: ((any Error, Int?) -> Void)? = nil
   ) async throws where S.Element == UInt8, S: Sendable {
     var builder = CIFPBuilder()
 
@@ -215,7 +215,7 @@ public struct CIFP: Sendable, Codable {
   public init(
     url: URL,
     progressHandler: @Sendable (Progress) -> Void = { _ in },
-    errorCallback: ((Error, Int?) -> Void)? = nil
+    errorCallback: ((any Error, Int?) -> Void)? = nil
   ) async throws {
     var builder = CIFPBuilder()
 
@@ -511,7 +511,7 @@ private struct CIFPBuilder {
     }
   }
 
-  func build(errorCallback: ((Error, Int?) -> Void)?) -> CIFPBuildResult {
+  func build(errorCallback: ((any Error, Int?) -> Void)?) -> CIFPBuildResult {
     let headerText = headerRecords.sorted(by: { $0.lineNumber < $1.lineNumber }).map(\.text),
       header = parseHeader(from: headerText),
       cycle = buildCycle(from: headerText, header: header)
@@ -579,7 +579,7 @@ private struct CIFPBuilder {
     return Cycle.effective
   }
 
-  private func buildAirways(errorCallback: ((Error, Int?) -> Void)?) -> [String: Airway] {
+  private func buildAirways(errorCallback: ((any Error, Int?) -> Void)?) -> [String: Airway] {
     var airways: [String: Airway] = [:]
     for (ident, fixes) in airwayFixes {
       guard let meta = airwayMeta[ident],
@@ -606,7 +606,7 @@ private struct CIFPBuilder {
     return airways
   }
 
-  private func buildMSAs(errorCallback: ((Error, Int?) -> Void)?) -> [MSA] {
+  private func buildMSAs(errorCallback: ((any Error, Int?) -> Void)?) -> [MSA] {
     var msas: [MSA] = []
     for (key, value) in msaRecords {
       guard let radiusNM = value.base.radius else {
@@ -634,7 +634,7 @@ private struct CIFPBuilder {
     return msas
   }
 
-  private func buildSIDs(errorCallback: ((Error, Int?) -> Void)?) -> [SID] {
+  private func buildSIDs(errorCallback: ((any Error, Int?) -> Void)?) -> [SID] {
     let runwayNames = collectRunwayNames(from: sidLegs) { char in
       SIDRouteType(rawValue: char)?.isRunwayTransition ?? false
     }
@@ -658,7 +658,7 @@ private struct CIFPBuilder {
     )
   }
 
-  private func buildSTARs(errorCallback: ((Error, Int?) -> Void)?) -> [STAR] {
+  private func buildSTARs(errorCallback: ((any Error, Int?) -> Void)?) -> [STAR] {
     let runwayNames = collectRunwayNames(from: starLegs) { char in
       STARRouteType(rawValue: char)?.isRunwayTransition ?? false
     }
@@ -711,7 +711,7 @@ private struct CIFPBuilder {
     runwayNames: [String: Set<String>],
     parseRouteType: (Character) -> RouteType?,
     makeProcedure: (ProcedureLegRecord, RouteType, Set<String>, [ProcedureLeg]) -> Procedure,
-    errorCallback: ((Error, Int?) -> Void)?
+    errorCallback: ((any Error, Int?) -> Void)?
   ) -> [Procedure] {
     legs.compactMap { key, legs in
       guard let first = legs.first,
@@ -740,7 +740,7 @@ private struct CIFPBuilder {
     }
   }
 
-  private func buildApproaches(errorCallback: ((Error, Int?) -> Void)?) -> [Approach] {
+  private func buildApproaches(errorCallback: ((any Error, Int?) -> Void)?) -> [Approach] {
     var approaches: [Approach] = []
     for (key, legRecords) in approachLegs {
       guard let first = legRecords.first,
@@ -794,7 +794,7 @@ private struct CIFPBuilder {
     return approaches
   }
 
-  private func buildControlledAirspaces(errorCallback: ((Error, Int?) -> Void)?)
+  private func buildControlledAirspaces(errorCallback: ((any Error, Int?) -> Void)?)
     -> [ControlledAirspace]
   {
     var controlledAirspaces: [ControlledAirspace] = []
@@ -826,7 +826,7 @@ private struct CIFPBuilder {
     return controlledAirspaces
   }
 
-  private func buildSpecialUseAirspaces(errorCallback: ((Error, Int?) -> Void)?)
+  private func buildSpecialUseAirspaces(errorCallback: ((any Error, Int?) -> Void)?)
     -> [SpecialUseAirspace]
   {
     var specialUseAirspaces: [SpecialUseAirspace] = []
@@ -866,7 +866,7 @@ private struct CIFPBuilder {
     return specialUseAirspaces
   }
 
-  private func buildHeliportApproaches(errorCallback: ((Error, Int?) -> Void)?)
+  private func buildHeliportApproaches(errorCallback: ((any Error, Int?) -> Void)?)
     -> [HeliportApproach]
   {
     var heliportApproaches: [HeliportApproach] = []

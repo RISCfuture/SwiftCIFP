@@ -13,7 +13,7 @@ protocol CIFPDataLoader {
   /// - Returns: The parsed CIFP data.
   func load(
     progressHandler: @Sendable (Progress) -> Void,
-    errorCallback: @escaping (Error, Int?) -> Void
+    errorCallback: @escaping (any Error, Int?) -> Void
   ) async throws -> CIFP
 }
 
@@ -23,7 +23,7 @@ struct FileDataLoader: CIFPDataLoader {
 
   func load(
     progressHandler: @Sendable (Progress) -> Void,
-    errorCallback: @escaping (Error, Int?) -> Void
+    errorCallback: @escaping (any Error, Int?) -> Void
   ) throws -> CIFP {
     let data: Data
     if url.pathExtension.lowercased() == "zip" {
@@ -41,7 +41,7 @@ struct URLDataLoader: CIFPDataLoader {
 
   func load(
     progressHandler: @Sendable (Progress) -> Void,
-    errorCallback: @escaping (Error, Int?) -> Void
+    errorCallback: @escaping (any Error, Int?) -> Void
   ) async throws -> CIFP {
     let (data, response) = try await URLSession.shared.data(from: url)
 
@@ -63,7 +63,7 @@ struct URLDataLoader: CIFPDataLoader {
 }
 
 /// Creates the appropriate loader for the given URL.
-func createLoader(for url: URL) -> CIFPDataLoader {
+func createLoader(for url: URL) -> any CIFPDataLoader {
   if url.isFileURL {
     return FileDataLoader(url: url)
   }

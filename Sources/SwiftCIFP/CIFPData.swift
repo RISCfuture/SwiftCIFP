@@ -1,7 +1,7 @@
 import Foundation
 
 #if canImport(CoreLocation)
-  import CoreLocation
+  public import CoreLocation
 #endif
 
 /// Central data container actor that enables model linking.

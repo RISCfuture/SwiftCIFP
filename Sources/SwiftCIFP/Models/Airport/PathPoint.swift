@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// Path point type.
 public enum PathPointType: Character, Sendable, Codable, CaseIterable, ByteInitializable {

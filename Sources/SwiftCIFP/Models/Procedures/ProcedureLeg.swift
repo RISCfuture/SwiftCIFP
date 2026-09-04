@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// A single leg of a flight procedure (SID, STAR, or Approach).
 public struct ProcedureLeg: Sendable, Codable, Equatable, Hashable {

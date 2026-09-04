@@ -3,9 +3,13 @@
 
 import PackageDescription
 
-let approachableConcurrency: [SwiftSetting] = [
+let upcomingFeatures: [SwiftSetting] = [
   .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
-  .enableUpcomingFeature("InferIsolatedConformances")
+  .enableUpcomingFeature("InferIsolatedConformances"),
+  .enableUpcomingFeature("ImmutableWeakCaptures"),
+  .enableUpcomingFeature("MemberImportVisibility"),
+  .enableUpcomingFeature("ExistentialAny"),
+  .enableUpcomingFeature("InternalImportsByDefault")
 ]
 
 let package = Package(
@@ -28,12 +32,12 @@ let package = Package(
     .target(
       name: "SwiftCIFP",
       resources: [.process("Resources")],
-      swiftSettings: approachableConcurrency
+      swiftSettings: upcomingFeatures
     ),
     .testTarget(
       name: "SwiftCIFPTests",
       dependencies: ["SwiftCIFP"],
-      swiftSettings: approachableConcurrency
+      swiftSettings: upcomingFeatures
     )
   ],
   swiftLanguageModes: [.v5, .v6]
@@ -48,6 +52,6 @@ package.targets.append(
       .product(name: "ZIPFoundation", package: "ZIPFoundation"),
       .product(name: "Progress", package: "Progress.swift")
     ],
-    swiftSettings: approachableConcurrency
+    swiftSettings: upcomingFeatures
   )
 )

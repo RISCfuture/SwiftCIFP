@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// NDB (Non-Directional Beacon) Navaid record.
 ///

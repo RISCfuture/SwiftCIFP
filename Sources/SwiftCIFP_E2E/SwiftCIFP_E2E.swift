@@ -105,7 +105,7 @@ struct SwiftCIFP_E2E: AsyncParsableCommand {
         errorCount += 1
         var message = if let line { "Error at line \(line): " } else { "Error: " }
         message += error.localizedDescription
-        if let reason = (error as? LocalizedError)?.failureReason {
+        if let reason = (error as? (any LocalizedError))?.failureReason {
           message += "\n - \(reason)"
         }
         FileHandle.standardError.printError(message)
@@ -126,7 +126,7 @@ struct SwiftCIFP_E2E: AsyncParsableCommand {
     stdout.open()
     defer { stdout.close() }
 
-    let formatter: OutputFormatter =
+    let formatter: any OutputFormatter =
       switch format {
         case .summary: SummaryOutputFormatter()
         case .json: JSONOutputFormatter()

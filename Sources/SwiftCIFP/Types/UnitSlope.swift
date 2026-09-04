@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// Converts between degrees and gradient using tan/atan.
 private final class UnitConverterDegrees: UnitConverter, @unchecked Sendable {
