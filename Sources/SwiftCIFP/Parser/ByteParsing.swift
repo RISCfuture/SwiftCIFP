@@ -99,12 +99,13 @@ extension RandomAccessCollection where Element == UInt8, Index == Int {
     return negative ? -value : value
   }
 
-  /// Get a subsequence using a relative range from startIndex.
+  /// Get a subsequence using a relative range from startIndex, clamped to the end of the
+  /// collection. A range that begins past the end yields an empty subsequence.
   @inlinable
   func slice(_ range: Range<Int>) -> SubSequence {
-    let lower = startIndex + range.lowerBound
-    let upper = startIndex + range.upperBound
-    return self[lower..<Swift.min(upper, endIndex)]
+    let lower = Swift.min(startIndex + range.lowerBound, endIndex),
+      upper = Swift.min(startIndex + range.upperBound, endIndex)
+    return self[lower..<upper]
   }
 
   /// Convert to trimmed String (only when actually needed).
