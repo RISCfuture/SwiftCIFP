@@ -1,5 +1,16 @@
 # Change Log
 
+## [Unreleased]
+
+### Fixed
+
+- Parsing a truncated record no longer traps. `slice(_:)` clamped only its upper
+  bound, so a field whose range began past the end of a short line produced an
+  inverted range and an uncatchable runtime failure that took down the host app.
+  Both bounds are now clamped, and an out-of-range field reads as empty — which
+  routes the record to `errorCallback` as a missing required field, matching the
+  short-line tolerance the single-byte field reads already had.
+
 ## [1.2.0] - 2026-07-06
 
 ### Added

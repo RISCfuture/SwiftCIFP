@@ -238,6 +238,41 @@ struct `ByteParsing tests` {
     let slice = bytes[...].slice(6..<11)
     #expect(slice.toString() == "WORLD")
   }
+
+  @Test
+  func `returns an empty slice for a range beginning past the end`() {
+    let bytes: [UInt8] = Array("HELLO".utf8)
+    #expect(bytes[...].slice(93..<123).isEmpty)
+  }
+}
+
+// MARK: - Truncated Record Tests
+
+@Suite
+struct `truncated record handling` {
+  @Test
+  func `reports a truncated record through the error callback`() throws {
+    // An airport record cut off just past its subsection code.
+    let truncatedAirportRecord = "SUSAP KLAXK2A"
+    var reportedErrors: [(error: any Error, line: Int?)] = []
+
+    let cifp = try CIFP(
+      data: Data(truncatedAirportRecord.utf8),
+      errorCallback: { error, line in reportedErrors.append((error, line)) }
+    )
+
+    #expect(cifp.airports.isEmpty)
+    #expect(reportedErrors.count == 1)
+    #expect(reportedErrors.first?.line == 1)
+
+    let error = try #require(reportedErrors.first?.error as? CIFPError)
+    guard case let .missingRequiredField(field, recordType, _) = error else {
+      Issue.record("Expected a missing required field error")
+      return
+    }
+    #expect(field == "coordinate")
+    #expect(recordType == "Airport")
+  }
 }
 
 // MARK: - Altitude Tests
