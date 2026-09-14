@@ -111,19 +111,35 @@ extension RandomAccessCollection where Element == UInt8, Index == Int {
   /// Convert to trimmed String (only when actually needed).
   @inlinable
   func toString() -> String {
-    guard let string = String(bytes: Array(self), encoding: .utf8) else { return "" }
-    return string.trimmingCharacters(in: .whitespaces)
+    toRawString().trimmingCharacters(in: .whitespaces)
   }
 
   /// Convert to raw String without trimming (for exact matching like section codes).
+  ///
+  /// Decodes in place over the collection's own storage, so no intermediate array is
+  /// allocated per field. Bytes that are not valid UTF-8 yield an empty string.
   @inlinable
   func toRawString() -> String {
-    String(bytes: Array(self), encoding: .utf8) ?? ""
+    withContiguousStorageIfAvailable(String.init(validatingUTF8Bytes:))
+      ?? ContiguousArray(self).withUnsafeBufferPointer(String.init(validatingUTF8Bytes:))
   }
 
   /// Check if all bytes are whitespace.
   @inlinable
   func isBlank() -> Bool {
     allSatisfy { $0 == ASCII.space }
+  }
+}
+
+extension String {
+  /// Create a string from contiguous UTF-8 bytes without copying them into an
+  /// intermediate array, yielding an empty string when the bytes are not valid UTF-8.
+  @inlinable
+  init(validatingUTF8Bytes bytes: UnsafeBufferPointer<UInt8>) {
+    guard let utf8 = try? UTF8Span(validating: bytes.span) else {
+      self = ""
+      return
+    }
+    self.init(copying: utf8)
   }
 }

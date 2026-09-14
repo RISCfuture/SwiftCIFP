@@ -99,12 +99,12 @@ struct AsyncCIFPLineReader: AsyncSequence, Sendable {
       self.lineBuffer.reserveCapacity(lineBufferCapacity)
     }
 
-    mutating func next() throws -> [UInt8]? {
+    mutating func next() throws(CIFPError) -> [UInt8]? {
       guard !isEOF else { return nil }
 
       // Lazily open file handle on first call
       if handle == nil {
-        handle = try FileHandle(forReadingFrom: url)
+        handle = try openFile()
       }
       guard let handle else { preconditionFailure("handle was nil") }
 
@@ -113,7 +113,7 @@ struct AsyncCIFPLineReader: AsyncSequence, Sendable {
       while true {
         // Refill buffer if exhausted
         if bufferPos >= buffer.count {
-          guard let chunk = try handle.read(upToCount: bufferSize),
+          guard let chunk = try readChunk(from: handle),
             !chunk.isEmpty
           else {
             isEOF = true
@@ -136,6 +136,22 @@ struct AsyncCIFPLineReader: AsyncSequence, Sendable {
           return lineBuffer
         }
         lineBuffer.append(byte)
+      }
+    }
+
+    private func openFile() throws(CIFPError) -> FileHandle {
+      do {
+        return try FileHandle(forReadingFrom: url)
+      } catch {
+        throw .streamError(error)
+      }
+    }
+
+    private func readChunk(from handle: FileHandle) throws(CIFPError) -> Data? {
+      do {
+        return try handle.read(upToCount: bufferSize)
+      } catch {
+        throw .streamError(error)
       }
     }
   }
@@ -172,10 +188,10 @@ where Source.Element == UInt8, Source: Sendable {
     }
 
     @concurrent
-    mutating func next() async throws -> [UInt8]? {
+    mutating func next() async throws(Source.Failure) -> [UInt8]? {
       lineBuffer.removeAll(keepingCapacity: true)
 
-      while let byte = try await iterator.next() {
+      while let byte = try await iterator.next(isolation: nil) {
         if byte == ASCII.LF {
           // Strip trailing CR if present (handles CRLF)
           if lineBuffer.last == ASCII.CR {

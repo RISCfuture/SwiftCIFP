@@ -1,13 +1,3 @@
-# CI Matrix Policy
-#
-# Category A (tools-version 6.2 + macOS 26 min): macos-26 + Swift 6.2
-# Category B (tools-version 6.2 + older macOS):  macos-15 + 6.2, macos-26 + 6.2
-# Category C (tools-version 6.0):                macos-15 + 6.0, macos-15 + 6.2, macos-26 + 6.2
-# Linux:                                          ubuntu + Swift 6.3
-#
-# When Swift 6.3 ships: bump 6.0→6.1 and 6.2→6.3 in Category C
-# When bumping tools-version to 6.2: drop 6.0/6.1, move to Category A or B
-
 name: CI
 
 on:
@@ -29,8 +19,12 @@ jobs:
         include:
           - os: macos-26
             swift: "6.2"
+          - os: macos-26
+            swift: "6.4"
           - os: ubuntu-latest
             swift: "6.3"
+          - os: ubuntu-latest
+            swift: "6.4"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
