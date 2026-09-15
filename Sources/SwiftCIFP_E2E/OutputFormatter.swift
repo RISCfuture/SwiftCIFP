@@ -30,7 +30,7 @@ struct SummaryOutputFormatter: OutputFormatter {
       "",
       "=== CIFP Summary ===",
       "Cycle: \(cifp.cycle)",
-      "Parse time: \(String(format: "%.2f", elapsed)) seconds",
+      "Parse time: \(unsafe String(format: "%.2f", elapsed)) seconds",
       "Errors: \(errorCount)",
       "",
       "Record counts:",

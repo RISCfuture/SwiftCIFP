@@ -120,8 +120,8 @@ extension RandomAccessCollection where Element == UInt8, Index == Int {
   /// allocated per field. Bytes that are not valid UTF-8 yield an empty string.
   @inlinable
   func toRawString() -> String {
-    withContiguousStorageIfAvailable(String.init(validatingUTF8Bytes:))
-      ?? ContiguousArray(self).withUnsafeBufferPointer(String.init(validatingUTF8Bytes:))
+    unsafe (withContiguousStorageIfAvailable(String.init(validatingUTF8Bytes:))
+      ?? ContiguousArray(self).withUnsafeBufferPointer(String.init(validatingUTF8Bytes:)))
   }
 
   /// Check if all bytes are whitespace.
@@ -136,7 +136,7 @@ extension String {
   /// intermediate array, yielding an empty string when the bytes are not valid UTF-8.
   @inlinable
   init(validatingUTF8Bytes bytes: UnsafeBufferPointer<UInt8>) {
-    guard let utf8 = try? UTF8Span(validating: bytes.span) else {
+    guard let utf8 = try? UTF8Span(validating: unsafe bytes.span) else {
       self = ""
       return
     }

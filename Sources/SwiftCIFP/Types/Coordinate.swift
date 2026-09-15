@@ -58,6 +58,12 @@ extension Coordinate: CustomStringConvertible {
   public var description: String {
     let latDir = latitudeDeg >= 0 ? "N" : "S"
     let lonDir = longitudeDeg >= 0 ? "E" : "W"
-    return String(format: "%.6f°%@, %.6f°%@", abs(latitudeDeg), latDir, abs(longitudeDeg), lonDir)
+    return unsafe String(
+      format: "%.6f°%@, %.6f°%@",
+      abs(latitudeDeg),
+      latDir,
+      abs(longitudeDeg),
+      lonDir
+    )
   }
 }
