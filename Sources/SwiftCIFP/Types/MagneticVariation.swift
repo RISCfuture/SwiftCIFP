@@ -59,6 +59,6 @@ extension MagneticVariation {
 
 extension MagneticVariation: CustomStringConvertible {
   public var description: String {
-    String(format: "%.1f°%@", degrees, String(direction.rawValue))
+    unsafe String(format: "%.1f°%@", degrees, String(direction.rawValue))
   }
 }

@@ -141,7 +141,7 @@ extension Cycle {
 extension Cycle {
   /// The YYMM string representation (used internally for identification).
   var yymm: String {
-    String(format: "%02d%02d", year % 100, cycleNumber)
+    unsafe String(format: "%02d%02d", year % 100, cycleNumber)
   }
 }
 

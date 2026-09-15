@@ -47,8 +47,8 @@ struct SwiftCIFP_E2E: AsyncParsableCommand {
       guard let (year, month, day) = dateComponents(from: effectiveDate) else {
         throw ValidationError("Failed to extract date components from cycle")
       }
-      let filename = String(format: Self.cifpFilenameFormat, year % 100, month, day)
-      guard let url = URL(string: String(format: Self.cifpURLFormat, filename)) else {
+      let filename = unsafe String(format: Self.cifpFilenameFormat, year % 100, month, day)
+      guard let url = URL(string: unsafe String(format: Self.cifpURLFormat, filename)) else {
         throw ValidationError("Failed to construct CIFP URL")
       }
       return url
