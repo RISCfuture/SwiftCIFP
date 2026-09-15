@@ -26,7 +26,7 @@ airports, procedures (SID/STAR/approach), and airspace.
 ## Requirements
 
 - Swift 6.2+
-- macOS 13+, iOS 16+, watchOS 9+, tvOS 16+, or visionOS 1+
+- macOS 26+, iOS 26+, watchOS 26+, tvOS 26+, or visionOS 26+
 
 ## Installation
 
