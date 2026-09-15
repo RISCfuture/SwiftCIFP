@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-14
+
+### Changed
+
+- Lowered the platform floor to macOS 13, iOS 16, watchOS 9, tvOS 16, and
+  visionOS 1, down from 26 on every platform. The manifest had required
+  releases far newer than anything the package uses — `TimeZone.gmt` is the
+  newest API it touches — so apps that have not moved to the 26 releases can
+  now adopt the library unchanged.
+- Raised the minimum version of two package dependencies: swift-argument-parser
+  1.8.2 and swift-docc-plugin 1.5.0.
+
 ### Fixed
 
 - Parsing a truncated record no longer traps. `slice(_:)` clamped only its upper
