@@ -10,6 +10,15 @@
   read. Cycle 2610 lost 32 of its 382 beacons that way, including three of the
   four distinct navaids named `IL`. Each entry now holds every beacon carrying
   that identifier, in the order the records appear in the file.
+- A procedure leg naming a terminal navaid (section `PN`) resolves to nothing rather
+  than to an enroute NDB that happens to share the identifier.
+  `resolveFix(_:icaoRegion:sectionCode:airportId:)` had no case for `.terminalNavaid`, so
+  the reference fell through to the catch-all that tries every table in turn and answered
+  from the enroute NDB list. `Fix` carries no case for a `TerminalNavaid` and the FAA's
+  CIFP publishes no `PN` records for one to name, so there is nothing correct to return:
+  Brainerd's ILS and LOC RWY 34 missed-approach hold resolved to a beacon 1,237 NM away
+  in Brownsville, Texas. Legs whose fix does not resolve already carry no coordinate,
+  which is what such a leg now does.
 - `SwiftCIFP_E2E` no longer loses its report when standard output is a file.
   It reopened `/dev/stdout` by path, with truncation, while the progress bar
   wrote to the standard output it already had. On Linux that path resolves

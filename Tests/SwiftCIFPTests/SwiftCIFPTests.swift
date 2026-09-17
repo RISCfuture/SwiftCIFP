@@ -876,6 +876,19 @@ struct `CIFPData tests` {
   }
 
   @Test
+  func `refuses to answer a terminal navaid reference from the enroute NDB table`() async {
+    let data = CIFPData(ndbNavaids: ["IL": [Self.ndbNavaid(region: "K4")]])
+
+    let fix = await data.resolveFix(
+      "IL",
+      icaoRegion: "K4",
+      sectionCode: .terminalNavaid,
+      airportId: "KILE"
+    )
+    #expect(fix == nil)
+  }
+
+  @Test
   func `resolves an unambiguous NDB identifier with no region`() async {
     let data = CIFPData(ndbNavaids: ["IL": [Self.ndbNavaid(region: "K4")]])
 

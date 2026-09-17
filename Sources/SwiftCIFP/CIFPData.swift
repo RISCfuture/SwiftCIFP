@@ -430,6 +430,11 @@ public actor CIFPData {
   /// - `"DB"`: NDB Navaid
   /// - `"EA"`: Enroute Waypoint
   /// - `"PC"`: Terminal Waypoint (requires airportId)
+  /// - `"PN"`: Terminal Navaid, which never resolves — see below
+  ///
+  /// A record naming a terminal navaid resolves to nothing. ``Fix`` has no case that carries a
+  /// ``TerminalNavaid``, and the FAA's CIFP publishes no `PN` records for one to name, so the
+  /// only answer available is a different beacon that happens to share the identifier.
   ///
   /// - Parameters:
   ///   - identifier: The fix identifier.
@@ -475,6 +480,11 @@ public actor CIFPData {
         {
           return .terminalWaypoint(tw)
         }
+        return nil
+      case .terminalNavaid:
+        // A terminal navaid belongs to one airport, and no `Fix` case carries one. Falling back
+        // to the enroute NDB table would answer with an unrelated beacon sharing the identifier,
+        // which is a position hundreds of miles from the procedure that named it.
         return nil
       default:
         // Other section codes - try all types
