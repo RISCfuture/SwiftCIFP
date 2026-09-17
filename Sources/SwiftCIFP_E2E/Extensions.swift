@@ -9,8 +9,13 @@ extension URL {
 }
 
 extension FileHandle {
+  /// Writes a string to this file handle.
+  func write(_ string: String) {
+    write(Data(string.utf8))
+  }
+
   /// Writes a message to this file handle followed by a newline.
   func printError(_ message: String) {
-    write(Data("\(message)\n".utf8))
+    write("\(message)\n")
   }
 }

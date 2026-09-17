@@ -10,6 +10,14 @@
   read. Cycle 2610 lost 32 of its 382 beacons that way, including three of the
   four distinct navaids named `IL`. Each entry now holds every beacon carrying
   that identifier, in the order the records appear in the file.
+- `SwiftCIFP_E2E` no longer loses its report when standard output is a file.
+  It reopened `/dev/stdout` by path, with truncation, while the progress bar
+  wrote to the standard output it already had. On Linux that path resolves
+  through `/proc/self/fd`, so reopening a redirected file yields a second file
+  description with its own offset and the two writers overwrite each other --
+  `SwiftCIFP_E2E > report.txt` came back empty or mangled. The report is now
+  written once to the standard output the process was given, and the progress
+  bar draws on standard error, only when that is a terminal.
 
 ### Changed
 

@@ -31,6 +31,14 @@ struct SwiftCIFP_E2E: AsyncParsableCommand {
   private static let cifpFilenameFormat = "CIFP_%02d%02d%02d.zip"
   private static let cifpURLFormat = "https://aeronav.faa.gov/Upload_313-d/cifp/%@"
 
+  /// Whether to animate a progress bar.
+  ///
+  /// Redirected output is a report for something else to read, not a screen to animate, so the
+  /// bar appears only when standard error is a terminal.
+  private static var showsProgress: Bool {
+    isatty(STDERR_FILENO) != 0
+  }
+
   @Option(
     name: .shortAndLong,
     help: "Path or URL to CIFP file (FAACIFP18 or .zip). Defaults to current FAA CIFP."
@@ -91,9 +99,9 @@ struct SwiftCIFP_E2E: AsyncParsableCommand {
 
     if verbose { print("Loading CIFP data…") }
 
-    // Set up progress tracking using actor to safely hold observation
-    // Only show progress bar for summary format to avoid corrupting JSON output
-    let progressTracker = format == .summary ? ProgressTracker() : nil
+    // The bar draws on standard error, so it no longer has to be withheld from a format
+    // that writes to standard output.
+    let progressTracker = Self.showsProgress ? ProgressTracker() : nil
 
     let cifp = try await loader.load(
       progressHandler: { progress in
@@ -115,23 +123,18 @@ struct SwiftCIFP_E2E: AsyncParsableCommand {
     // Clean up observation
     if let progressTracker {
       await progressTracker.stop()
-      print("\r\u{1B}[K", terminator: "")  // Clear progress line
+      FileHandle.standardError.write("\r\u{1B}[K")  // Clear progress line
     }
 
     let elapsed = Date().timeIntervalSince(startTime)
-
-    guard let stdout = OutputStream(toFileAtPath: "/dev/stdout", append: false) else {
-      fatalError("Failed to open stdout")
-    }
-    stdout.open()
-    defer { stdout.close() }
 
     let formatter: any OutputFormatter =
       switch format {
         case .summary: SummaryOutputFormatter()
         case .json: JSONOutputFormatter()
       }
-    try await formatter.format(cifp: cifp, errorCount: errorCount, elapsed: elapsed, to: stdout)
+    let report = try await formatter.report(cifp: cifp, errorCount: errorCount, elapsed: elapsed)
+    try FileHandle.standardOutput.write(contentsOf: report)
   }
 
   enum OutputFormat: String, ExpressibleByArgument {
@@ -158,7 +161,8 @@ private actor ProgressTracker {
         ProgressString(string: "Parsing:"),
         ProgressPercent(),
         ProgressBarLine(barLength: 40)
-      ]
+      ],
+      printer: StandardErrorProgressPrinter()
     )
   }
 
@@ -182,5 +186,24 @@ private actor ProgressTracker {
   func stop() {
     pollTask?.cancel()
     pollTask = nil
+  }
+}
+
+// MARK: - StandardErrorProgressPrinter
+
+/// Draws the progress bar on standard error, leaving standard output to the report alone.
+private struct StandardErrorProgressPrinter: ProgressBarPrinter {
+  private var lastPrintedTime = 0.0
+
+  init() {
+    // Each redraw moves the cursor up a line first, so it needs one to move up into.
+    FileHandle.standardError.write("\n")
+  }
+
+  mutating func display(_ progressBar: ProgressBar) {
+    let now = Date().timeIntervalSince1970
+    guard now - lastPrintedTime > 0.1 || progressBar.index == progressBar.count else { return }
+    FileHandle.standardError.write("\u{1B}[1A\u{1B}[K\(progressBar.value)\n")
+    lastPrintedTime = now
   }
 }
