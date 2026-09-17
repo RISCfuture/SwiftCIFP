@@ -179,7 +179,7 @@ extension AirwayFix {
     get async {
       guard let findFix else { return nil }
       // Airway fixes are enroute, not terminal, so no airportId needed
-      return await findFix(fixId, fixSectionCode, nil)
+      return await findFix(fixId, fixICAO, fixSectionCode, nil)
     }
   }
 }

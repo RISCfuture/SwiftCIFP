@@ -66,7 +66,7 @@ struct SummaryOutputFormatter: OutputFormatter {
     stream.writeLine("  Airports:           \(cifp.airports.count)")
     stream.writeLine("  Runways:            \(runwayCount)")
     stream.writeLine("  VHF Navaids:        \(cifp.vhfNavaids.count)")
-    stream.writeLine("  NDB Navaids:        \(cifp.ndbNavaids.count)")
+    stream.writeLine("  NDB Navaids:        \(cifp.ndbNavaidCount)")
     stream.writeLine("  Enroute Waypoints:  \(cifp.enrouteWaypoints.count)")
     stream.writeLine("  Terminal Waypoints: \(terminalWaypointCount)")
     stream.writeLine("  Airways:            \(cifp.airways.count)")

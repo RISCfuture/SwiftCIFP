@@ -22,12 +22,14 @@ protocol CIFPDataLinkable {
 ///
 /// - Parameters:
 ///   - identifier: The fix identifier string.
+///   - icaoRegion: ICAO region of the fix, when the referencing record names one.
 ///   - sectionCode: Optional section code indicating fix type.
 ///   - airportId: Optional airport identifier for terminal waypoint resolution.
 /// - Returns: The resolved Fix, or nil if not found.
 typealias FixResolver =
   @Sendable (
     _ identifier: String,
+    _ icaoRegion: String?,
     _ sectionCode: SectionCode?,
     _ airportId: String?
   ) async -> Fix?
@@ -36,11 +38,13 @@ typealias FixResolver =
 ///
 /// - Parameters:
 ///   - identifier: The navaid identifier string.
+///   - icaoRegion: ICAO region of the navaid, when the referencing record names one.
 ///   - sectionCode: Optional section code indicating navaid type.
 /// - Returns: The resolved Navaid, or nil if not found.
 typealias NavaidResolver =
   @Sendable (
     _ identifier: String,
+    _ icaoRegion: String?,
     _ sectionCode: String?
   ) async -> Navaid?
 

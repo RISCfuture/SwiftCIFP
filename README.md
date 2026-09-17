@@ -135,9 +135,11 @@ if let lax = cifp.vhfNavaids["LAX"] {
     print("Frequency: \(lax.frequency)")
 }
 
-// NDB Navaids
-for (id, ndb) in cifp.ndbNavaids {
-    print("\(id): \(ndb.frequency)")
+// NDB Navaids (one identifier can name beacons in several ICAO regions)
+for (id, ndbs) in cifp.ndbNavaids {
+    for ndb in ndbs {
+        print("\(id) [\(ndb.icaoRegion)]: \(ndb.frequency)")
+    }
 }
 
 // Enroute waypoints

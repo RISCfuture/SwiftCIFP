@@ -11,6 +11,7 @@
 - ``header``
 - ``cycle``
 - ``totalRecordCount``
+- ``ndbNavaidCount``
 
 ### Navigation Data
 
@@ -37,7 +38,7 @@
 
 - ``airport(_:)``
 - ``vhfNavaid(_:)``
-- ``ndbNavaid(_:)``
+- ``ndbNavaid(_:icaoRegion:)``
 - ``enrouteWaypoint(_:)``
 - ``terminalWaypoint(_:airportId:)``
 - ``airway(_:)``
@@ -48,5 +49,5 @@
 
 ### Fix Resolution
 
-- ``resolveFix(_:sectionCode:airportId:)``
-- ``resolveNavaid(_:sectionCode:)``
+- ``resolveFix(_:icaoRegion:sectionCode:airportId:)``
+- ``resolveNavaid(_:icaoRegion:sectionCode:)``

@@ -17,6 +17,7 @@
 - ``header``
 - ``cycle``
 - ``totalRecordCount``
+- ``ndbNavaidCount``
 
 ### Navigation Data
 

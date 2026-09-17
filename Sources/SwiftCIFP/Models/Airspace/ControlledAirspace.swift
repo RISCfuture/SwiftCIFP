@@ -86,7 +86,12 @@ extension ControlledAirspace {
   public var centerFix: Fix? {
     get async {
       guard let data else { return nil }
-      return await data.resolveFix(airspaceCenter, sectionCode: nil, airportId: nil)
+      return await data.resolveFix(
+        airspaceCenter,
+        icaoRegion: icaoRegion,
+        sectionCode: nil,
+        airportId: nil
+      )
     }
   }
 

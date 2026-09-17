@@ -222,7 +222,7 @@ extension ProcedureLeg {
       guard let fixId,
         let findFix
       else { return nil }
-      return await findFix(fixId, fixSectionCode, parentAirportId)
+      return await findFix(fixId, fixICAO, fixSectionCode, parentAirportId)
     }
   }
 
@@ -236,7 +236,7 @@ extension ProcedureLeg {
         let findNavaid
       else { return nil }
       // Recommended navaids use section code "D" for VHF or "DB" for NDB
-      return await findNavaid(recommendedNavaid, nil)
+      return await findNavaid(recommendedNavaid, recommendedNavaidICAO, nil)
     }
   }
 
@@ -249,7 +249,7 @@ extension ProcedureLeg {
       guard let centerFix,
         let findFix
       else { return nil }
-      return await findFix(centerFix, nil, parentAirportId)
+      return await findFix(centerFix, centerFixICAO, nil, parentAirportId)
     }
   }
 }

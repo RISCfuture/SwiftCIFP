@@ -55,7 +55,11 @@ public actor CIFPData {
   public private(set) var vhfNavaids: [String: VHFNavaid]
 
   /// NDB Navaids keyed by identifier.
-  public private(set) var ndbNavaids: [String: NDBNavaid]
+  ///
+  /// NDB identifiers are only unique within an ICAO region, so a single identifier can
+  /// name several distinct beacons. Each entry holds every beacon sharing that
+  /// identifier, in the order the records appear in the file.
+  public private(set) var ndbNavaids: [String: [NDBNavaid]]
 
   /// Enroute waypoints keyed by identifier.
   public private(set) var enrouteWaypoints: [String: EnrouteWaypoint]
@@ -89,9 +93,14 @@ public actor CIFPData {
   /// Terminal waypoints for cross-airport fix resolution.
   private var _terminalWaypoints: [TerminalWaypoint] = []
 
+  /// Total number of NDB navaids, counting every beacon that shares an identifier.
+  public var ndbNavaidCount: Int {
+    ndbNavaids.values.reduce(0) { $0 + $1.count }
+  }
+
   /// Total number of all records.
   public var totalRecordCount: Int {
-    gridMORAs.count + vhfNavaids.count + ndbNavaids.count + enrouteWaypoints.count + airways.count
+    gridMORAs.count + vhfNavaids.count + ndbNavaidCount + enrouteWaypoints.count + airways.count
       + airports.values.reduce(airports.count) { (count: Int, airport) in
         count + airport.runways.count + airport.terminalWaypoints.count
           + airport.terminalNavaids.count + airport.localizers.count
@@ -148,7 +157,7 @@ public actor CIFPData {
   ///   - terminalWaypoints: Terminal waypoints to include.
   public init(
     vhfNavaids: [String: VHFNavaid] = [:],
-    ndbNavaids: [String: NDBNavaid] = [:],
+    ndbNavaids: [String: [NDBNavaid]] = [:],
     enrouteWaypoints: [String: EnrouteWaypoint] = [:],
     terminalWaypoints: [TerminalWaypoint] = []
   ) {
@@ -307,14 +316,19 @@ public actor CIFPData {
   // MARK: - Closure Factories
 
   private func makeFindFix() -> FixResolver {
-    return { [weak self] identifier, sectionCode, airportId in
-      await self?.resolveFix(identifier, sectionCode: sectionCode, airportId: airportId)
+    return { [weak self] identifier, icaoRegion, sectionCode, airportId in
+      await self?.resolveFix(
+        identifier,
+        icaoRegion: icaoRegion,
+        sectionCode: sectionCode,
+        airportId: airportId
+      )
     }
   }
 
   private func makeFindNavaid() -> NavaidResolver {
-    return { [weak self] identifier, sectionCode in
-      await self?.resolveNavaid(identifier, sectionCode: sectionCode)
+    return { [weak self] identifier, icaoRegion, sectionCode in
+      await self?.resolveNavaid(identifier, icaoRegion: icaoRegion, sectionCode: sectionCode)
     }
   }
 
@@ -330,9 +344,12 @@ public actor CIFPData {
     vhfNavaids[identifier]
   }
 
-  /// Get an NDB navaid by identifier.
-  public func ndbNavaid(_ identifier: String) -> NDBNavaid? {
-    ndbNavaids[identifier]
+  /// Get an NDB navaid by identifier and ICAO region.
+  ///
+  /// An NDB identifier is only unique within a region, so both are required to name one
+  /// beacon. Use ``ndbNavaids`` directly to see every beacon sharing an identifier.
+  public func ndbNavaid(_ identifier: String, icaoRegion: String) -> NDBNavaid? {
+    ndbNavaids[identifier]?.first { $0.icaoRegion == icaoRegion }
   }
 
   /// Get an enroute waypoint by identifier.
@@ -394,6 +411,18 @@ public actor CIFPData {
 
   // MARK: - Fix Resolution
 
+  /// The NDB a record refers to by identifier, narrowed by region when the record names
+  /// one.
+  ///
+  /// A record naming no region resolves only when the identifier is unambiguous. NDB
+  /// identifiers repeat across ICAO regions, and picking between the candidates would
+  /// invent a fix the record never referenced.
+  private func referencedNDBNavaid(_ identifier: String, icaoRegion: String?) -> NDBNavaid? {
+    guard let beacons = ndbNavaids[identifier] else { return nil }
+    guard let icaoRegion else { return beacons.count == 1 ? beacons.first : nil }
+    return beacons.first { $0.icaoRegion == icaoRegion }
+  }
+
   /// Resolves a fix based on identifier and optional section code.
   ///
   /// Section codes indicate fix type:
@@ -404,11 +433,13 @@ public actor CIFPData {
   ///
   /// - Parameters:
   ///   - identifier: The fix identifier.
+  ///   - icaoRegion: ICAO region of the fix, when the referencing record names one.
   ///   - sectionCode: Optional section code indicating fix type.
   ///   - airportId: Optional airport identifier for terminal waypoint resolution.
   /// - Returns: The resolved Fix, or nil if not found.
   public func resolveFix(
     _ identifier: String,
+    icaoRegion: String?,
     sectionCode: SectionCode?,
     airportId: String?
   ) -> Fix? {
@@ -420,7 +451,7 @@ public actor CIFPData {
       if let vhf = vhfNavaids[identifier] {
         return .vhfNavaid(vhf)
       }
-      if let ndb = ndbNavaids[identifier] {
+      if let ndb = referencedNDBNavaid(identifier, icaoRegion: icaoRegion) {
         return .ndbNavaid(ndb)
       }
       if let airportId,
@@ -435,7 +466,7 @@ public actor CIFPData {
       case .vhfNavaid:
         return vhfNavaids[identifier].map { .vhfNavaid($0) }
       case .ndbNavaid:
-        return ndbNavaids[identifier].map { .ndbNavaid($0) }
+        return referencedNDBNavaid(identifier, icaoRegion: icaoRegion).map { .ndbNavaid($0) }
       case .enrouteWaypoint:
         return enrouteWaypoints[identifier].map { .enrouteWaypoint($0) }
       case .terminalWaypoint:
@@ -453,7 +484,7 @@ public actor CIFPData {
         if let vhf = vhfNavaids[identifier] {
           return .vhfNavaid(vhf)
         }
-        if let ndb = ndbNavaids[identifier] {
+        if let ndb = referencedNDBNavaid(identifier, icaoRegion: icaoRegion) {
           return .ndbNavaid(ndb)
         }
         return nil
@@ -464,10 +495,12 @@ public actor CIFPData {
   ///
   /// - Parameters:
   ///   - identifier: The navaid identifier.
+  ///   - icaoRegion: ICAO region of the navaid, when the referencing record names one.
   ///   - sectionCode: Optional section code indicating navaid type.
   /// - Returns: The resolved Navaid, or nil if not found.
   public func resolveNavaid(
     _ identifier: String,
+    icaoRegion: String?,
     sectionCode: String?
   ) -> Navaid? {
     guard let section = sectionCode?.trimmingCharacters(in: .whitespaces), !section.isEmpty else {
@@ -475,7 +508,7 @@ public actor CIFPData {
       if let vhf = vhfNavaids[identifier] {
         return .vhf(vhf)
       }
-      if let ndb = ndbNavaids[identifier] {
+      if let ndb = referencedNDBNavaid(identifier, icaoRegion: icaoRegion) {
         return .ndb(ndb)
       }
       return nil
@@ -485,13 +518,13 @@ public actor CIFPData {
       case "D":
         return vhfNavaids[identifier].map { .vhf($0) }
       case "DB":
-        return ndbNavaids[identifier].map { .ndb($0) }
+        return referencedNDBNavaid(identifier, icaoRegion: icaoRegion).map { .ndb($0) }
       default:
         // Unknown section code - try both
         if let vhf = vhfNavaids[identifier] {
           return .vhf(vhf)
         }
-        if let ndb = ndbNavaids[identifier] {
+        if let ndb = referencedNDBNavaid(identifier, icaoRegion: icaoRegion) {
           return .ndb(ndb)
         }
         return nil
@@ -541,7 +574,11 @@ public struct CIFPDataSnapshot: Sendable, Codable {
   public let vhfNavaids: [String: VHFNavaid]
 
   /// NDB Navaids keyed by identifier.
-  public let ndbNavaids: [String: NDBNavaid]
+  ///
+  /// NDB identifiers are only unique within an ICAO region, so a single identifier can
+  /// name several distinct beacons. Each entry holds every beacon sharing that
+  /// identifier, in the order the records appear in the file.
+  public let ndbNavaids: [String: [NDBNavaid]]
 
   /// Enroute waypoints keyed by identifier.
   public let enrouteWaypoints: [String: EnrouteWaypoint]

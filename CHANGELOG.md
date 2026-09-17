@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Every NDB navaid in the distribution now survives parsing. `ndbNavaids` was
+  keyed by identifier alone, but an NDB identifier is only unique within an
+  ICAO region, so beacons sharing one overwrote each other as records were
+  read. Cycle 2610 lost 32 of its 382 beacons that way, including three of the
+  four distinct navaids named `IL`. Each entry now holds every beacon carrying
+  that identifier, in the order the records appear in the file.
+
+### Changed
+
+- `ndbNavaids` on `CIFP`, `CIFPData`, and `CIFPDataSnapshot` is now
+  `[String: [NDBNavaid]]` rather than `[String: NDBNavaid]`, so a lookup
+  returns every beacon sharing the identifier. The new `ndbNavaidCount`
+  totals every beacon rather than every identifier.
+- `ndbNavaid(_:)` is gone, replaced by `ndbNavaid(_:icaoRegion:)`. An NDB
+  identifier does not name a beacon on its own, so the bare lookup could only
+  guess among the candidates.
+- `resolveFix(_:sectionCode:airportId:)` and `resolveNavaid(_:sectionCode:)`
+  take an `icaoRegion` argument, as do the `FixResolver` and `NavaidResolver`
+  closures behind them. Procedure legs, airway fixes, MSA records, and the
+  airspace types all carried the region already and now pass it, so a leg
+  referencing one of the beacons that share an identifier resolves to the right
+  one. A record naming no region resolves an NDB only where the identifier is
+  unambiguous.
+
 ## [1.3.0] - 2026-09-14
 
 ### Changed

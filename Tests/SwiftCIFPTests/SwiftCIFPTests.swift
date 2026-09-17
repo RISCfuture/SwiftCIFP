@@ -275,6 +275,39 @@ struct `truncated record handling` {
   }
 }
 
+// MARK: - NDB Identifier Collision Tests
+
+@Suite
+struct `NDB navaids sharing an identifier` {
+  /// Two beacons from the FAA distribution that both answer to `IL`, in different ICAO
+  /// regions. Joined with CRLF to match the line endings the distribution ships.
+  private static let collidingRecords = [
+    "SUSADB       IL    K4002780HOLW N31012674W097422925                       E0050           NARIRESH                         270261811",
+    "SUSADB       IL    K5004070HOMW N39293492W083441745                       W0070           NARAIRBO                         270272106"
+  ].joined(separator: "\r\n")
+
+  private static func parseCollidingRecords() throws -> CIFP {
+    try CIFP(data: Data(collidingRecords.utf8))
+  }
+
+  @Test
+  func `keeps every beacon that shares the identifier`() throws {
+    let cifp = try Self.parseCollidingRecords()
+
+    #expect(cifp.ndbNavaids["IL"]?.count == 2)
+    #expect(cifp.ndbNavaidCount == 2)
+  }
+
+  @Test
+  func `selects a beacon by ICAO region`() throws {
+    let cifp = try Self.parseCollidingRecords()
+
+    #expect(cifp.ndbNavaid("IL", icaoRegion: "K4")?.icaoRegion == "K4")
+    #expect(cifp.ndbNavaid("IL", icaoRegion: "K5")?.icaoRegion == "K5")
+    #expect(cifp.ndbNavaid("IL", icaoRegion: "K9") == nil)
+  }
+}
+
 // MARK: - Altitude Tests
 
 @Suite
@@ -740,6 +773,18 @@ struct `STAR runway names` {
 
 @Suite
 struct `CIFPData tests` {
+
+  private static func ndbNavaid(region: String) -> NDBNavaid {
+    .init(
+      identifier: "IL",
+      icaoRegion: region,
+      frequencyKHz: 278,
+      ndbClass: .mediumHighPower,
+      coordinate: Coordinate(latitudeDeg: 31.02, longitudeDeg: -97.71),
+      magneticVariation: MagneticVariation(direction: .east, degrees: 5.0),
+      name: "IRESH"
+    )
+  }
   @Test
   func `resolves a VHF navaid fix`() async {
     let navaid = VHFNavaid(
@@ -764,7 +809,7 @@ struct `CIFPData tests` {
       terminalWaypoints: []
     )
 
-    let fix = await data.resolveFix("LAX", sectionCode: .vhfNavaid, airportId: nil)
+    let fix = await data.resolveFix("LAX", icaoRegion: nil, sectionCode: .vhfNavaid, airportId: nil)
     #expect(fix != nil)
     if case .vhfNavaid(let resolved) = fix {
       #expect(resolved.identifier == "LAX")
@@ -787,15 +832,56 @@ struct `CIFPData tests` {
 
     let data = CIFPData(
       vhfNavaids: [:],
-      ndbNavaids: ["SLI": ndb],
+      ndbNavaids: ["SLI": [ndb]],
       enrouteWaypoints: [:],
       terminalWaypoints: []
     )
 
-    let fix = await data.resolveFix("SLI", sectionCode: .ndbNavaid, airportId: nil)
+    let fix = await data.resolveFix(
+      "SLI",
+      icaoRegion: "K2",
+      sectionCode: .ndbNavaid,
+      airportId: nil
+    )
     #expect(fix != nil)
     if case .ndbNavaid(let resolved) = fix {
       #expect(resolved.identifier == "SLI")
+    } else {
+      Issue.record("Expected NDB navaid fix")
+    }
+  }
+
+  @Test
+  func `resolves a shared NDB identifier by region`() async {
+    let data = CIFPData(ndbNavaids: [
+      "IL": [Self.ndbNavaid(region: "K4"), Self.ndbNavaid(region: "K5")]
+    ])
+
+    let fix = await data.resolveFix("IL", icaoRegion: "K5", sectionCode: .ndbNavaid, airportId: nil)
+    if case .ndbNavaid(let resolved) = fix {
+      #expect(resolved.icaoRegion == "K5")
+    } else {
+      Issue.record("Expected NDB navaid fix")
+    }
+  }
+
+  @Test
+  func `refuses to resolve a shared NDB identifier with no region`() async {
+    let data = CIFPData(ndbNavaids: [
+      "IL": [Self.ndbNavaid(region: "K4"), Self.ndbNavaid(region: "K5")]
+    ])
+
+    let fix = await data.resolveFix("IL", icaoRegion: nil, sectionCode: .ndbNavaid, airportId: nil)
+    #expect(fix == nil)
+  }
+
+  @Test
+  func `resolves an unambiguous NDB identifier with no region`() async {
+    let data = CIFPData(ndbNavaids: ["IL": [Self.ndbNavaid(region: "K4")]])
+
+    let fix = await data.resolveFix("IL", icaoRegion: nil, sectionCode: .ndbNavaid, airportId: nil)
+    if case .ndbNavaid(let resolved) = fix {
+      #expect(resolved.icaoRegion == "K4")
     } else {
       Issue.record("Expected NDB navaid fix")
     }
@@ -820,7 +906,12 @@ struct `CIFPData tests` {
       terminalWaypoints: []
     )
 
-    let fix = await data.resolveFix("DAGGR", sectionCode: .enrouteWaypoint, airportId: nil)
+    let fix = await data.resolveFix(
+      "DAGGR",
+      icaoRegion: nil,
+      sectionCode: .enrouteWaypoint,
+      airportId: nil
+    )
     #expect(fix != nil)
     if case .enrouteWaypoint(let resolved) = fix {
       #expect(resolved.identifier == "DAGGR")
@@ -850,7 +941,12 @@ struct `CIFPData tests` {
       terminalWaypoints: [waypoint]
     )
 
-    let fix = await data.resolveFix("LIMMA", sectionCode: .terminalWaypoint, airportId: "KLAX")
+    let fix = await data.resolveFix(
+      "LIMMA",
+      icaoRegion: nil,
+      sectionCode: .terminalWaypoint,
+      airportId: "KLAX"
+    )
     #expect(fix != nil)
     if case .terminalWaypoint(let resolved) = fix {
       #expect(resolved.identifier == "LIMMA")
@@ -880,7 +976,7 @@ struct `CIFPData tests` {
     )
 
     // Without section code, should still find the waypoint
-    let fix = await data.resolveFix("DAGGR", sectionCode: nil, airportId: nil)
+    let fix = await data.resolveFix("DAGGR", icaoRegion: nil, sectionCode: nil, airportId: nil)
     #expect(fix != nil)
     if case .enrouteWaypoint(let resolved) = fix {
       #expect(resolved.identifier == "DAGGR")
@@ -913,7 +1009,7 @@ struct `CIFPData tests` {
       terminalWaypoints: []
     )
 
-    let resolved = await data.resolveNavaid("LAX", sectionCode: "D")
+    let resolved = await data.resolveNavaid("LAX", icaoRegion: nil, sectionCode: "D")
     #expect(resolved != nil)
     if case .vhf(let vhf) = resolved {
       #expect(vhf.identifier == "LAX")
@@ -931,7 +1027,7 @@ struct `CIFPData tests` {
       terminalWaypoints: []
     )
 
-    let fix = await data.resolveFix("UNKNOWN", sectionCode: nil, airportId: nil)
+    let fix = await data.resolveFix("UNKNOWN", icaoRegion: nil, sectionCode: nil, airportId: nil)
     #expect(fix == nil)
   }
 }

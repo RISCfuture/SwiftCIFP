@@ -101,7 +101,12 @@ extension SpecialUseAirspace {
   public var centerFix: Fix? {
     get async {
       guard let data else { return nil }
-      return await data.resolveFix(designation, sectionCode: nil, airportId: nil)
+      return await data.resolveFix(
+        designation,
+        icaoRegion: icaoRegion,
+        sectionCode: nil,
+        airportId: nil
+      )
     }
   }
 }

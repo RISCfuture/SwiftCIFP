@@ -45,7 +45,11 @@ public struct CIFP: Sendable, Codable {
   public let vhfNavaids: [String: VHFNavaid]
 
   /// NDB Navaids keyed by identifier.
-  public let ndbNavaids: [String: NDBNavaid]
+  ///
+  /// NDB identifiers are only unique within an ICAO region, so a single identifier can
+  /// name several distinct beacons. Each entry holds every beacon sharing that
+  /// identifier, in the order the records appear in the file.
+  public let ndbNavaids: [String: [NDBNavaid]]
 
   /// Enroute waypoints keyed by identifier.
   public let enrouteWaypoints: [String: EnrouteWaypoint]
@@ -77,9 +81,14 @@ public struct CIFP: Sendable, Codable {
   /// Access child records (waypoints, approaches, etc.) through each Heliport's properties.
   public let heliports: [String: Heliport]
 
+  /// Total number of NDB navaids, counting every beacon that shares an identifier.
+  public var ndbNavaidCount: Int {
+    ndbNavaids.values.reduce(0) { $0 + $1.count }
+  }
+
   /// Total number of all records.
   public var totalRecordCount: Int {
-    gridMORAs.count + vhfNavaids.count + ndbNavaids.count + enrouteWaypoints.count + airways.count
+    gridMORAs.count + vhfNavaids.count + ndbNavaidCount + enrouteWaypoints.count + airways.count
       + airports.values.reduce(airports.count) { (count: Int, airport) in
         count + airport.runways.count + airport.terminalWaypoints.count
           + airport.terminalNavaids.count + airport.localizers.count
@@ -275,9 +284,12 @@ public struct CIFP: Sendable, Codable {
     vhfNavaids[identifier]
   }
 
-  /// Get an NDB navaid by identifier.
-  public func ndbNavaid(_ identifier: String) -> NDBNavaid? {
-    ndbNavaids[identifier]
+  /// Get an NDB navaid by identifier and ICAO region.
+  ///
+  /// An NDB identifier is only unique within a region, so both are required to name one
+  /// beacon. Use ``ndbNavaids`` directly to see every beacon sharing an identifier.
+  public func ndbNavaid(_ identifier: String, icaoRegion: String) -> NDBNavaid? {
+    ndbNavaids[identifier]?.first { $0.icaoRegion == icaoRegion }
   }
 
   /// Get an enroute waypoint by identifier.
@@ -392,7 +404,7 @@ private struct CIFPBuilder {
   var headerRecords: [HeaderRecord] = []
   var gridMORAs: [GridMORA] = []
   var vhfNavaids: [String: VHFNavaid] = [:]
-  var ndbNavaids: [String: NDBNavaid] = [:]
+  var ndbNavaids: [String: [NDBNavaid]] = [:]
   var enrouteWaypoints: [String: EnrouteWaypoint] = [:]
   var airwayFixes: [String: [AirwayFix]] = [:]
   var airwayMeta: [String: (routeType: AirwayRouteType?, level: AirwayLevel?)] = [:]
@@ -427,7 +439,7 @@ private struct CIFPBuilder {
       case .vhfNavaid(let r):
         vhfNavaids[r.identifier] = r
       case .ndbNavaid(let r):
-        ndbNavaids[r.identifier] = r
+        ndbNavaids[r.identifier, default: []].append(r)
       case .enrouteWaypoint(let r):
         enrouteWaypoints[r.identifier] = r
       case .airwayFix(let r):
@@ -1125,7 +1137,7 @@ private struct CIFPBuildResult {
   let cycle: Cycle
   let gridMORAs: [GridMORA]
   let vhfNavaids: [String: VHFNavaid]
-  let ndbNavaids: [String: NDBNavaid]
+  let ndbNavaids: [String: [NDBNavaid]]
   let enrouteWaypoints: [String: EnrouteWaypoint]
   let airways: [String: Airway]
   /// Airports with folded children (runways, waypoints, procedures, etc.)
