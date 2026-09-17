@@ -1,0 +1,543 @@
+name: CIFP Cycle Watch
+
+# The FAA publishes each 28-day AIRAC cycle about three weeks before it takes effect, so the
+# incoming cycle can be parsed well before anyone depends on it. A cheap HEAD gates the expensive
+# parse; the report artifact, named for the cycle, doubles as the record of what has been checked.
+
+on:
+  schedule:
+    - cron: "0 16 * * *"
+  workflow_dispatch:
+    inputs:
+      cycle:
+        description: "AIRAC cycle to check, as YYMM (e.g. 2610). Blank uses the next cycle to take effect."
+        required: false
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  # AIRAC 2401 took effect on this date; every cycle since falls a multiple of 28 days later.
+  AIRAC_DATUM: "2024-01-25"
+
+jobs:
+  probe:
+    name: Look for a new cycle
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      issues: write
+    outputs:
+      cycle: ${{ steps.target.outputs.cycle }}
+      previous-cycle: ${{ steps.target.outputs.previous-cycle }}
+      cycle-date: ${{ steps.target.outputs.cycle-date }}
+      url: ${{ steps.target.outputs.url }}
+      published-at: ${{ steps.availability.outputs.published-at }}
+      days-out: ${{ steps.availability.outputs.days-out }}
+      parse: ${{ steps.decide.outputs.parse }}
+    steps:
+      - name: Resolve the target cycle
+        id: target
+        env:
+          REQUESTED: ${{ inputs.cycle }}
+        run: |
+          set -euo pipefail
+
+          period=$(( 28 * 86400 ))
+          datum=$(date -u -d "$AIRAC_DATUM" +%s)
+
+          # Cycles are numbered 01-13 within a year, so the index since AIRAC 2401 carries both
+          # halves of the YYMM identifier. Shell division truncates toward zero rather than
+          # flooring, so the index is first carried a whole century of cycles above zero - which
+          # keeps the arithmetic right for index -1, the cycle before the datum.
+          cycle_id() {
+            local i=$(( $1 + 13 * 100 ))
+            printf '%02d%02d' "$(( (1924 + i / 13) % 100 ))" "$(( i % 13 + 1 ))"
+          }
+
+          if [ -n "$REQUESTED" ]; then
+            case "$REQUESTED" in
+              [0-9][0-9][0-9][0-9]) ;;
+              *)
+                echo "::error::'$REQUESTED' is not an AIRAC cycle identifier. Use YYMM, e.g. 2610."
+                exit 1
+                ;;
+            esac
+
+            year=$(( 2000 + 10#${REQUESTED%??} ))
+            number=$(( 10#${REQUESTED#??} ))
+
+            if [ "$number" -lt 1 ] || [ "$number" -gt 13 ]; then
+              echo "::error::Cycle number $number is out of range; AIRAC cycles run 01 to 13."
+              exit 1
+            fi
+
+            index=$(( (year - 2024) * 13 + number - 1 ))
+            if [ "$index" -lt 0 ]; then
+              echo "::error::Cycle $REQUESTED precedes AIRAC 2401, the earliest cycle this addresses."
+              exit 1
+            fi
+          else
+            index=$(( ( ($(date -u +%s) - datum) / period ) + 1 ))
+          fi
+
+          effective=$(( datum + index * period ))
+          filename="CIFP_$(date -u -d "@$effective" +%y%m%d).zip"
+
+          {
+            echo "cycle=$(cycle_id "$index")"
+            echo "previous-cycle=$(cycle_id "$(( index - 1 ))")"
+            echo "cycle-date=$(date -u -d "@$effective" +%F)"
+            echo "url=https://aeronav.faa.gov/Upload_313-d/cifp/$filename"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check whether the FAA has published it
+        id: availability
+        env:
+          CYCLE: ${{ steps.target.outputs.cycle }}
+          CYCLE_DATE: ${{ steps.target.outputs.cycle-date }}
+          URL: ${{ steps.target.outputs.url }}
+          REQUESTED: ${{ inputs.cycle }}
+        run: |
+          set -euo pipefail
+
+          headers="$RUNNER_TEMP/headers.txt"
+          code=$(curl --silent --show-error --location --head \
+                      --retry 3 --retry-delay 10 --retry-all-errors \
+                      --dump-header "$headers" --output /dev/null \
+                      --write-out '%{http_code}' "$URL" || echo 000)
+          echo "$URL -> $code"
+
+          if [ "$code" = "200" ]; then
+            available=true
+          else
+            available=false
+          fi
+
+          published=$(grep -i '^last-modified:' "$headers" | tail -n 1 | cut -d' ' -f2- | tr -d '\r')
+          days_out=$(( ( $(date -u -d "$CYCLE_DATE" +%s) - $(date -u +%s) ) / 86400 ))
+
+          # Publication runs about three weeks ahead, so a cycle still missing two weeks out means
+          # the FAA slipped or the URL shape changed - either of which otherwise looks like an
+          # ordinary quiet day. A hand-requested cycle is exempt: asking for an expired one is fair.
+          if [ "$available" != "true" ] && [ "$days_out" -le 14 ] && [ -z "$REQUESTED" ]; then
+            overdue=true
+          else
+            overdue=false
+          fi
+
+          {
+            echo "available=$available"
+            echo "overdue=$overdue"
+            echo "days-out=$days_out"
+            echo "published-at=$published"
+            echo "http-code=$code"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Decide whether to parse
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          CYCLE: ${{ steps.target.outputs.cycle }}
+          AVAILABLE: ${{ steps.availability.outputs.available }}
+          DAYS_OUT: ${{ steps.availability.outputs.days-out }}
+          PUBLISHED: ${{ steps.availability.outputs.published-at }}
+          REQUESTED: ${{ inputs.cycle }}
+        run: |
+          set -euo pipefail
+
+          note() { echo "$1"; echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
+
+          if [ "$AVAILABLE" != "true" ]; then
+            note "Cycle $CYCLE is not downloadable yet; it takes effect in $DAYS_OUT day(s)."
+            echo "parse=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -n "$REQUESTED" ]; then
+            note "Re-checking cycle $CYCLE on request (published \`$PUBLISHED\`)."
+            echo "parse=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # An existing report artifact is the record that this cycle was already checked.
+          artifact="cifp-report-$CYCLE"
+          found=$(ARTIFACT="$artifact" gh api \
+            "repos/$GH_REPO/actions/artifacts?name=$artifact&per_page=100" \
+            --jq '[.artifacts[] | select(.name == env.ARTIFACT and .expired == false)] | length')
+
+          if [ "$found" -gt 0 ]; then
+            note "Cycle $CYCLE has already been checked."
+            echo "parse=false" >> "$GITHUB_OUTPUT"
+          else
+            note "Cycle $CYCLE is new (published \`$PUBLISHED\`, effective in $DAYS_OUT days)."
+            echo "parse=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Report a cycle the FAA never published
+        if: steps.availability.outputs.overdue == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          CYCLE: ${{ steps.target.outputs.cycle }}
+          CYCLE_DATE: ${{ steps.target.outputs.cycle-date }}
+          DAYS_OUT: ${{ steps.availability.outputs.days-out }}
+          URL: ${{ steps.target.outputs.url }}
+          CODE: ${{ steps.availability.outputs.http-code }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          {
+            echo "Cycle **$CYCLE** takes effect on $CYCLE_DATE, in $DAYS_OUT day(s), and is still"
+            echo "not downloadable. The FAA normally publishes about three weeks ahead, so either"
+            echo "this cycle slipped or the download URL has changed shape."
+            echo
+            echo "| URL | HEAD |"
+            echo "|---|---|"
+            echo "| \`$URL\` | $CODE |"
+            echo
+            echo "[View the run]($RUN_URL)"
+          } > issue-body.md
+
+          title="CIFP cycle $CYCLE was never published"
+          number=$(TITLE="$title" gh issue list --state all --search "CIFP cycle $CYCLE in:title" \
+            --json number,title --jq 'map(select(.title == env.TITLE)) | .[0].number // empty')
+
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body-file issue-body.md
+          else
+            gh issue create --title "$title" --body-file issue-body.md
+          fi
+
+  parse:
+    name: Parse the cycle
+    needs: probe
+    if: needs.probe.outputs.parse == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    env:
+      CYCLE: ${{ needs.probe.outputs.cycle }}
+      PREVIOUS_CYCLE: ${{ needs.probe.outputs.previous-cycle }}
+      CYCLE_DATE: ${{ needs.probe.outputs.cycle-date }}
+      URL: ${{ needs.probe.outputs.url }}
+      PUBLISHED: ${{ needs.probe.outputs.published-at }}
+      DAYS_OUT: ${{ needs.probe.outputs.days-out }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Nothing here pushes, so the token has no business in .git/config, where every later
+          # step could read it - the third-party toolchain action included.
+          persist-credentials: false
+
+      - name: Name the report files
+        run: |
+          set -euo pipefail
+          {
+            echo "SUMMARY=$RUNNER_TEMP/summary.txt"
+            echo "ERROR_LOG=$RUNNER_TEMP/errors.log"
+            echo "COUNTS=$RUNNER_TEMP/counts.tsv"
+            echo "DRIFT=$RUNNER_TEMP/drift.tsv"
+          } >> "$GITHUB_ENV"
+
+      - uses: SwiftyLab/setup-swift@latest
+        with:
+          swift-version: "6.4"
+
+      - name: Cache SwiftPM build products
+        # Usually misses: 28 days between runs is well past the seven-day idle eviction. It earns
+        # its place when a cycle is re-checked by hand after a fix.
+        uses: actions/cache@v6
+        with:
+          path: |
+            .build
+            ~/.cache/org.swift.swiftpm
+          key: swiftpm-cyclewatch-ubuntu-latest-swift6.4-${{ hashFiles('Package.resolved') }}
+
+      - name: Build
+        # Release: a debug build cannot get through 400,000 fixed-width records in any useful time.
+        run: swift build -c release --product SwiftCIFP_E2E
+
+      - name: Fetch the previous cycle's counts
+        id: baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ARTIFACT: cifp-report-${{ needs.probe.outputs.previous-cycle }}
+        run: |
+          set -euo pipefail
+
+          # download-artifact cannot reach another run's artifact without that run's id, which is
+          # itself state to keep somewhere; the name already carries the cycle.
+          id=$(gh api "repos/$GH_REPO/actions/artifacts?name=$ARTIFACT&per_page=100" \
+            --jq '[.artifacts[] | select(.name == env.ARTIFACT and .expired == false)]
+                  | max_by(.id) | .id // empty')
+
+          if [ -z "$id" ]; then
+            echo "No report for $PREVIOUS_CYCLE; this cycle becomes the baseline for the next one."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          gh api "repos/$GH_REPO/actions/artifacts/$id/zip" > previous.zip
+          unzip -o -q previous.zip -d previous
+
+          # A run that died before writing its counts still uploaded its log, so the artifact
+          # existing does not mean there is anything to compare against.
+          if [ -s previous/counts.tsv ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "The report for $PREVIOUS_CYCLE holds no counts; the comparison is skipped."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Parse the cycle
+        id: parse
+        run: |
+          set -euo pipefail
+
+          # The exit code is captured, not propagated: the report still has to be uploaded,
+          # summarized, and turned into an issue. It only catches a crash or a failed download -
+          # the tool reports per-record parse errors through its own count, and exits 0 either way.
+          status=0
+          .build/release/SwiftCIFP_E2E -i "$URL" --format summary \
+            > "$SUMMARY" 2> "$ERROR_LOG" || status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Extract the record counts
+        if: always() && steps.parse.outcome != 'skipped'
+        run: |
+          set -euo pipefail
+
+          # The tool writes its report to standard output and draws no progress bar unless it
+          # has a terminal, so the captured stdout is the summary verbatim.
+          [ -f "$SUMMARY" ] || : > "$SUMMARY"
+
+          awk -F': +' '
+            /^  [A-Za-z][^:]*: +[0-9]+$/ { label = $1; sub(/^  /, "", label); print label "\t" $2 }
+          ' "$SUMMARY" > "$COUNTS" || true
+
+      - name: Upload the report
+        # Uploaded before anything reads it, and on failure too: this artifact is also the record
+        # that the cycle was checked, so a broken cycle is reported once rather than every day.
+        if: always() && steps.parse.outcome != 'skipped'
+        uses: actions/upload-artifact@v6
+        with:
+          name: cifp-report-${{ needs.probe.outputs.cycle }}
+          path: |
+            ${{ runner.temp }}/summary.txt
+            ${{ runner.temp }}/counts.tsv
+            ${{ runner.temp }}/errors.log
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Read the verdict
+        id: verdict
+        if: always() && steps.parse.outcome != 'skipped'
+        env:
+          BASELINE_FOUND: ${{ steps.baseline.outputs.found }}
+        run: |
+          set -euo pipefail
+
+          errors=$(grep -m1 '^Errors:' "$SUMMARY" | awk '{print $2}' || true)
+          declared=$(grep -m1 '^Cycle:' "$SUMMARY" | cut -d' ' -f2- || true)
+
+          if [ -n "$declared" ] && [ "$declared" != "AIRAC $CYCLE" ]; then
+            mismatch=true
+          else
+            mismatch=false
+          fi
+
+          # A record type that quietly empties produces no parse errors at all, so a count diff
+          # against the previous cycle is the only thing that would ever mention it.
+          : > "$DRIFT"
+          if [ "$BASELINE_FOUND" = "true" ] && [ -s "$COUNTS" ]; then
+            awk -F'\t' '
+              NR == FNR { was[$1] = $2; next }
+              {
+                seen[$1] = 1
+                if (!($1 in was)) next
+                w = was[$1] + 0; n = $2 + 0
+                if (n == 0 && w > 0) { printf "%s\t%d\t%d\temptied\n", $1, w, n; next }
+                if (w <= 0) next
+                d = (n > w) ? n - w : w - n
+                if (d * 100 >= w * 10) {
+                  printf "%s\t%d\t%d\tchanged by %.1f%%\n", $1, w, n, d * 100.0 / w
+                }
+              }
+              END { for (k in was) if (!(k in seen)) printf "%s\t%d\t-\tmissing\n", k, was[k] }
+            ' previous/counts.tsv "$COUNTS" > "$DRIFT"
+          fi
+
+          {
+            echo "errors=${errors:-unknown}"
+            echo "declared=${declared:-unknown}"
+            echo "cycle-mismatch=$mismatch"
+            echo "drift=$(wc -l < "$DRIFT" | tr -d ' ')"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Write the job summary
+        if: always() && steps.parse.outcome != 'skipped'
+        env:
+          ERRORS: ${{ steps.verdict.outputs.errors }}
+          DECLARED: ${{ steps.verdict.outputs.declared }}
+          MISMATCH: ${{ steps.verdict.outputs.cycle-mismatch }}
+          DRIFT_COUNT: ${{ steps.verdict.outputs.drift }}
+          STATUS: ${{ steps.parse.outputs.status }}
+        run: |
+          set -euo pipefail
+
+          {
+            echo "## CIFP cycle $CYCLE"
+            echo
+            echo "- Effective: $CYCLE_DATE, in $DAYS_OUT day(s)"
+            echo "- Published by the FAA: \`$PUBLISHED\`"
+            echo "- Cycle the archive declares: \`$DECLARED\`"
+            echo "- Parse errors: **$ERRORS**"
+            echo "- Tool exit status: ${STATUS:-unknown}"
+
+            if [ "$MISMATCH" = "true" ]; then
+              echo "- :warning: The archive declares \`$DECLARED\`, not \`AIRAC $CYCLE\`."
+            fi
+            echo
+
+            if [ -s "$COUNTS" ]; then
+              echo "| Record type | Count |"
+              echo "|---|---:|"
+              awk -F'\t' '{ printf "| %s | %s |\n", $1, $2 }' "$COUNTS"
+              echo
+            fi
+
+            if [ "${DRIFT_COUNT:-0}" != "0" ]; then
+              echo "### Record count drift against $PREVIOUS_CYCLE"
+              echo
+              echo "| Record type | $PREVIOUS_CYCLE | $CYCLE | Reason |"
+              echo "|---|---:|---:|---|"
+              awk -F'\t' '{ printf "| %s | %s | %s | %s |\n", $1, $2, $3, $4 }' "$DRIFT"
+              echo
+            fi
+
+            if [ -s "$ERROR_LOG" ]; then
+              echo "### First parse errors"
+              echo
+              echo '```'
+              head -c 4000 "$ERROR_LOG"
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open or update the cycle's issue
+        # Drift and a declared-cycle mismatch file an issue as readily as a parse error: each is a
+        # way for the distribution to go wrong that produces no errors of its own.
+        if: >-
+          always() && steps.parse.outcome != 'skipped'
+          && (steps.parse.outputs.status != '0'
+              || steps.verdict.outputs.errors != '0'
+              || steps.verdict.outputs.drift != '0'
+              || steps.verdict.outputs.cycle-mismatch == 'true')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ERRORS: ${{ steps.verdict.outputs.errors }}
+          DECLARED: ${{ steps.verdict.outputs.declared }}
+          MISMATCH: ${{ steps.verdict.outputs.cycle-mismatch }}
+          DRIFT_COUNT: ${{ steps.verdict.outputs.drift }}
+          STATUS: ${{ steps.parse.outputs.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          # Everything the FAA ships reaches the body through a file, so none of it is ever read
+          # as shell.
+          {
+            echo "The end-to-end check for cycle **$CYCLE** (published \`$PUBLISHED\`, effective"
+            echo "$CYCLE_DATE) found problems."
+            echo
+            echo "- Source: \`$URL\`"
+            echo "- Parse errors: **$ERRORS**"
+            echo "- Tool exit status: ${STATUS:-unknown}"
+            echo
+            echo "[View the run]($RUN_URL) - the \`cifp-report-$CYCLE\` artifact holds the summary,"
+            echo "the record counts, and the full error log."
+            echo
+
+            if [ "$MISMATCH" = "true" ]; then
+              echo "### Wrong cycle in the archive"
+              echo
+              echo "The archive at the cycle $CYCLE URL declares \`$DECLARED\`."
+              echo
+            fi
+
+            if [ "${DRIFT_COUNT:-0}" != "0" ]; then
+              echo "### Record count drift against $PREVIOUS_CYCLE"
+              echo
+              echo "| Record type | $PREVIOUS_CYCLE | $CYCLE | Reason |"
+              echo "|---|---:|---:|---|"
+              awk -F'\t' '{ printf "| %s | %s | %s | %s |\n", $1, $2, $3, $4 }' "$DRIFT"
+              echo
+            fi
+
+            if [ -s "$COUNTS" ]; then
+              echo "### Record counts"
+              echo
+              echo "| Record type | Count |"
+              echo "|---|---:|"
+              awk -F'\t' '{ printf "| %s | %s |\n", $1, $2 }' "$COUNTS"
+              echo
+            fi
+
+            if [ -s "$ERROR_LOG" ]; then
+              echo "### Error samples"
+              echo
+              echo '```'
+              head -c 8000 "$ERROR_LOG"
+              echo '```'
+            elif [ ! -s "$SUMMARY" ]; then
+              echo "The tool produced neither a report nor any error output; see the run log."
+            fi
+          } > issue-body.md
+
+          # The title is a function of the cycle alone, which is what keeps a re-check idempotent.
+          # The search omits the punctuation so GitHub's query parser cannot read it as a qualifier.
+          title="CIFP cycle $CYCLE: end-to-end check failed"
+          number=$(TITLE="$title" gh issue list --state all --search "CIFP cycle $CYCLE in:title" \
+            --json number,title --jq 'map(select(.title == env.TITLE)) | .[0].number // empty')
+
+          if [ -n "$number" ]; then
+            gh issue reopen "$number" >/dev/null 2>&1 || true
+            gh issue comment "$number" --body-file issue-body.md
+          else
+            gh issue create --title "$title" --body-file issue-body.md
+          fi
+
+      - name: Annotate the outcome
+        if: always() && steps.parse.outcome != 'skipped'
+        env:
+          ERRORS: ${{ steps.verdict.outputs.errors }}
+          DRIFT_COUNT: ${{ steps.verdict.outputs.drift }}
+          MISMATCH: ${{ steps.verdict.outputs.cycle-mismatch }}
+          STATUS: ${{ steps.parse.outputs.status }}
+        run: |
+          set -euo pipefail
+
+          if [ "${STATUS:-1}" != "0" ]; then
+            echo "::error::Cycle $CYCLE did not finish parsing; an issue has been filed."
+          elif [ "${ERRORS:-unknown}" != "0" ]; then
+            echo "::error::Cycle $CYCLE reported $ERRORS parse error(s); an issue has been filed."
+          elif [ "$MISMATCH" = "true" ]; then
+            echo "::error::Cycle $CYCLE declares the wrong cycle; an issue has been filed."
+          elif [ "${DRIFT_COUNT:-0}" != "0" ]; then
+            echo "::warning::Cycle $CYCLE parsed cleanly but $DRIFT_COUNT record type(s) drifted."
+          else
+            echo "Cycle $CYCLE parsed cleanly with no count drift."
+          fi
