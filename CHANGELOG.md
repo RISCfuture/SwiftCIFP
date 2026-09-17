@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-16
+
 ### Fixed
 
 - Every NDB navaid in the distribution now survives parsing. `ndbNavaids` was
