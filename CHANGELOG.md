@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING:** The platform floor rises to macOS 26, iOS 26, tvOS 26, watchOS
+  26, and visionOS 26. CIFP fields are now decoded through `UTF8Span` over the
+  record slice's own storage, and `UTF8Span` exists nowhere below that floor.
+- **BREAKING:** Both async line reader iterators declare their error type. The
+  file-backed reader throws `CIFPError.streamError`, wrapping the underlying
+  `FileHandle` failure, which makes `CIFP(url:)` match its documented contract
+  of throwing `CIFPError`. The generic byte-sequence reader propagates its
+  source's own `Failure`, so a non-throwing source now yields a non-throwing
+  sequence.
+- Field decoding no longer copies each field into an `Array` before reading it.
+  `toString()` and `toRawString()` run on roughly 101 call sites per record
+  across hundreds of thousands of records, so that per-field allocation
+  dominated the string side of parsing. Decoding over the slice's own storage is
+  about 2.3x faster on a field-decode microbenchmark and produces byte-identical
+  output, verified exhaustively over all one- and two-byte sequences, over 400k
+  random and ASCII-biased fields, and end-to-end against a 60k-record synthetic
+  corpus.
+- Strict memory safety (SE-0458) is enabled, and every unsafe construct it
+  surfaces is audited and marked.
+
 ## [2.0.0] - 2026-09-16
 
 ### Fixed
