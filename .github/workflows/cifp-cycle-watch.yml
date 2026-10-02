@@ -119,7 +119,7 @@ jobs:
             available=false
           fi
 
-          published=$(grep -i '^last-modified:' "$headers" | tail -n 1 | cut -d' ' -f2- | tr -d '\r')
+          published=$({ grep -is '^last-modified:' "$headers" || true; } | tail -n 1 | cut -d' ' -f2- | tr -d '\r')
           days_out=$(( ( $(date -u -d "$CYCLE_DATE" +%s) - $(date -u +%s) ) / 86400 ))
 
           # Publication runs about three weeks ahead, so a cycle still missing two weeks out means
