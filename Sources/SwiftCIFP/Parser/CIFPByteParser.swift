@@ -67,6 +67,8 @@ struct ProcedureLegRecord: Sendable {
   let transitionId: String?
   let leg: ProcedureLeg
   let isMissedApproach: Bool
+  let navigationRequirement: Approach.NavigationRequirement?
+  let landing: Approach.Landing?
 }
 
 /// Intermediate heliport MSA record.

@@ -8,6 +8,8 @@
 - ``icaoRegion``
 - ``approachType``
 - ``routeType``
+- ``navigationRequirement``
+- ``landing``
 - ``transitionId``
 - ``runwayId``
 - ``multipleIndicator``

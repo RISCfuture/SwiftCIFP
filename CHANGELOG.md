@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- `Approach` and `HeliportApproach` report each route's qualifiers (ARINC 424
+  field 5.7, columns 119 and 120) as `navigationRequirement` and `landing`.
+  They are read per route because the FAA codes them that way: KOAK ILS RWY
+  12's RAIDR transition requires GPS while its final route requires DME. An
+  unrecognized qualifier fails its record. Cycle 2610 has one, the `A` on KUIN
+  RNAV (GPS) RWY 31's UYAPI transition.
+
 ### Fixed
 
 - Waypoint description codes now decode each column under FAA Order 8260.19G,

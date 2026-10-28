@@ -113,6 +113,10 @@ extension CIFPByteParser {
     let centerFixICAO = bytes.slice(112..<114).toString()
 
     let isMissedApproach = waypointDesc?.isFirstMissedApproachLeg ?? false
+    let qualifiers =
+      type == .approach
+      ? try parseApproachRouteQualifiers(bytes, lineNumber: lineNumber)
+      : (navigationRequirement: nil, landing: nil)
 
     guard let seqNum else {
       throw CIFPError.missingRequiredField(
@@ -154,7 +158,9 @@ extension CIFPByteParser {
       routeType: routeTypeByte == ASCII.space ? nil : Character(UnicodeScalar(routeTypeByte)),
       transitionId: transitionIdent.isEmpty ? nil : transitionIdent,
       leg: leg,
-      isMissedApproach: isMissedApproach
+      isMissedApproach: isMissedApproach,
+      navigationRequirement: qualifiers.navigationRequirement,
+      landing: qualifiers.landing
     )
 
     switch type {
@@ -278,6 +284,23 @@ extension CIFPByteParser {
       isLNAVAuthorized: try authorization(at: 62),
       authorizedRNP: authorizedRNP
     )
+  }
+
+  /// Parse an approach route's qualifiers (positions 118 and 119, ARINC 424 field 5.7).
+  static func parseApproachRouteQualifiers(
+    _ bytes: ArraySlice<UInt8>,
+    lineNumber: Int
+  ) throws -> (navigationRequirement: Approach.NavigationRequirement?, landing: Approach.Landing?) {
+    func code<Code: ByteInitializable>(at offset: Int) throws -> Code? {
+      let byte = bytes.count > offset ? bytes[bytes.startIndex + offset] : ASCII.space
+      return try CoordinateParser.parseCode(
+        byte,
+        field: "route qualifier",
+        value: String(Character(UnicodeScalar(byte))),
+        lineNumber: lineNumber
+      )
+    }
+    return (try code(at: 118), try code(at: 119))
   }
 
   /// Procedure type for internal parsing dispatch.

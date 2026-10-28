@@ -766,6 +766,8 @@ private struct CIFPBuilder {
           identifier: first.procedureId,
           approachType: route.approachType,
           routeType: route.routeType,
+          navigationRequirement: route.navigationRequirement,
+          landing: route.landing,
           transitionId: first.transitionId,
           legs: route.legs,
           missedApproachLegs: route.missedApproachLegs,
@@ -864,6 +866,8 @@ private struct CIFPBuilder {
           identifier: first.procedureId,
           approachType: route.approachType,
           routeType: route.routeType,
+          navigationRequirement: route.navigationRequirement,
+          landing: route.landing,
           transitionId: first.transitionId,
           legs: route.legs,
           missedApproachLegs: route.missedApproachLegs,
@@ -876,16 +880,19 @@ private struct CIFPBuilder {
 
   // MARK: - Approach Helpers
 
-  /// The approach type of each procedure, keyed by airport and procedure. Only the final
-  /// approach route carries it; transitions carry route type "A" instead.
-  private func approachTypes(in legs: [String: [ProcedureLegRecord]]) -> [String: ApproachType] {
-    var result: [String: ApproachType] = [:]
+  /// The first record of each procedure's final approach route, keyed by airport and
+  /// procedure. The approach type belongs to the procedure, but only the final approach
+  /// route carries it; transitions carry route type "A".
+  private func finalApproachRoutes(
+    in legs: [String: [ProcedureLegRecord]]
+  ) -> [String: ProcedureLegRecord] {
+    var result: [String: ProcedureLegRecord] = [:]
     for (_, legs) in legs {
       guard let first = legs.first,
         let code = first.routeType,
-        let approachType = ApproachType(rawValue: code)
+        Approach.RouteType(code: code) == .finalApproach
       else { continue }
-      result["\(first.airportId)-\(first.procedureId)"] = approachType
+      result["\(first.airportId)-\(first.procedureId)"] = first
     }
     return result
   }
@@ -898,7 +905,7 @@ private struct CIFPBuilder {
     makeProcedure: (ProcedureLegRecord, ApproachRoute) -> Procedure,
     errorCallback: ((any Error, Int?) -> Void)?
   ) -> [Procedure] {
-    let approachTypes = approachTypes(in: legs)
+    let finalApproachRoutes = finalApproachRoutes(in: legs)
     return legs.compactMap { key, legs in
       func fail(_ reason: CIFPError.AggregationReason) -> Procedure? {
         errorCallback?(
@@ -915,7 +922,9 @@ private struct CIFPBuilder {
         return fail(.invalidRouteType(code))
       }
       let procedureKey = "\(first.airportId)-\(first.procedureId)"
-      guard let approachType = approachTypes[procedureKey] else {
+      guard let finalRoute = finalApproachRoutes[procedureKey],
+        let approachType = finalRoute.routeType.flatMap(ApproachType.init(rawValue:))
+      else {
         return fail(.missingApproachType)
       }
 
@@ -931,6 +940,8 @@ private struct CIFPBuilder {
         ApproachRoute(
           approachType: approachType,
           routeType: routeType,
+          navigationRequirement: first.navigationRequirement,
+          landing: first.landing,
           legs: sortedRecords[..<firstMissedIndex].map(\.leg),
           missedApproachLegs: sortedRecords[firstMissedIndex...].map(\.leg),
           levelsOfService: levelsOfService[procedureKey]
@@ -1184,6 +1195,8 @@ private struct CIFPBuildResult {
 private struct ApproachRoute {
   let approachType: ApproachType
   let routeType: Approach.RouteType
+  let navigationRequirement: Approach.NavigationRequirement?
+  let landing: Approach.Landing?
   let legs: [ProcedureLeg]
   let missedApproachLegs: [ProcedureLeg]
   let levelsOfService: Approach.LevelsOfService?

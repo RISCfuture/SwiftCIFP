@@ -27,6 +27,13 @@ public struct Approach: Sendable, Codable, ProcedureLinkable {
   /// Whether this route is a transition or the final approach.
   public let routeType: RouteType
 
+  /// The navigation equipment this route requires.
+  public let navigationRequirement: NavigationRequirement?
+
+  /// Whether this route's minimums are for a straight-in landing, a circling landing,
+  /// or a helipad.
+  public let landing: Landing?
+
   /// Transition identifier (if this is a transition).
   public let transitionId: String?
 
@@ -81,6 +88,8 @@ public struct Approach: Sendable, Codable, ProcedureLinkable {
     identifier: String,
     approachType: ApproachType,
     routeType: RouteType,
+    navigationRequirement: NavigationRequirement? = nil,
+    landing: Landing? = nil,
     transitionId: String?,
     legs: [ProcedureLeg],
     missedApproachLegs: [ProcedureLeg],
@@ -91,6 +100,8 @@ public struct Approach: Sendable, Codable, ProcedureLinkable {
     self.identifier = identifier
     self.approachType = approachType
     self.routeType = routeType
+    self.navigationRequirement = navigationRequirement
+    self.landing = landing
     self.transitionId = transitionId
     self.legs = legs
     self.missedApproachLegs = missedApproachLegs
@@ -101,7 +112,7 @@ public struct Approach: Sendable, Codable, ProcedureLinkable {
 
   private enum CodingKeys: String, CodingKey {
     case airportId, icaoRegion, identifier, approachType
-    case routeType, transitionId, legs, missedApproachLegs
+    case routeType, navigationRequirement, landing, transitionId, legs, missedApproachLegs
     case levelsOfService
     // Note: 'data' is excluded
   }
@@ -134,6 +145,61 @@ extension Approach {
         default: return nil
       }
     }
+  }
+}
+
+// MARK: - Route Qualifiers
+
+extension Approach {
+  /// The navigation equipment an approach requires (ARINC 424 field 5.7, route qualifier 1).
+  public enum NavigationRequirement: Character, Sendable, Codable, CaseIterable,
+    ByteInitializable
+  {
+    /// DME required.
+    case dmeRequired = "D"
+
+    /// RNP authorization required. The FAA codes this on RNAV (RNP) approaches.
+    case rnpAR = "F"
+
+    /// GPS required; DME/DME to the procedure's RNP not authorized.
+    case gpsRequiredDMEDMENotAuthorized = "J"
+
+    /// GBAS procedure.
+    case gbas = "L"
+
+    /// DME not required.
+    case dmeNotRequired = "N"
+
+    /// GPS required.
+    case gpsRequired = "P"
+
+    /// GPS, or DME/DME to the procedure's RNP, required.
+    case gpsOrDMEDMERequired = "R"
+
+    /// DME/DME required.
+    case dmeDMERequired = "T"
+
+    /// RNAV, sensor not specified.
+    case rnavSensorNotSpecified = "U"
+
+    /// VOR/DME RNAV.
+    case vorDMERNAV = "V"
+
+    /// SBAS procedure.
+    case sbas = "W"
+  }
+
+  /// The kind of landing an approach's minimums are for (ARINC 424 field 5.7, route
+  /// qualifier 2).
+  public enum Landing: Character, Sendable, Codable, CaseIterable, ByteInitializable {
+    /// Straight-in minimums.
+    case straightIn = "S"
+
+    /// Circle-to-land minimums.
+    case circleToLand = "C"
+
+    /// A helicopter approach to a helipad.
+    case helipad = "H"
   }
 }
 

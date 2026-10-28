@@ -1430,6 +1430,16 @@ struct `approach identification` {
     #expect(final.routeType == .finalApproach)
   }
 
+  @Test
+  func `reads each route's own qualifiers`() throws {
+    let transition = try FAARecords.oaklandILS12Approach(transitionId: "RAIDR"),
+      final = try FAARecords.oaklandILS12Approach(transitionId: nil)
+
+    #expect(transition.navigationRequirement == .gpsRequired)
+    #expect(final.navigationRequirement == .dmeRequired)
+    #expect(final.landing == .straightIn)
+  }
+
   @Test(
     arguments: [
       ("I12", "RW12", nil),

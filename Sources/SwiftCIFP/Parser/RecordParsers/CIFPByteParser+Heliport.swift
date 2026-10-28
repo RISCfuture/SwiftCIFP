@@ -149,6 +149,7 @@ extension CIFPByteParser {
     let centerFixICAO = bytes.slice(112..<114).toString()
 
     let heliIsMissedApproach = waypointDesc?.isFirstMissedApproachLeg ?? false
+    let qualifiers = try parseApproachRouteQualifiers(bytes, lineNumber: lineNumber)
 
     guard let seqNum else {
       throw CIFPError.missingRequiredField(
@@ -191,7 +192,9 @@ extension CIFPByteParser {
         routeType: routeTypeByte == ASCII.space ? nil : Character(UnicodeScalar(routeTypeByte)),
         transitionId: transitionIdent.isEmpty ? nil : transitionIdent,
         leg: leg,
-        isMissedApproach: heliIsMissedApproach
+        isMissedApproach: heliIsMissedApproach,
+        navigationRequirement: qualifiers.navigationRequirement,
+        landing: qualifiers.landing
       )
     )
   }
