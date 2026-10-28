@@ -9,11 +9,22 @@ extension CIFPByteParser {
   ) throws -> ParsedRecord {
     let identifier = bytes.slice(13..<18).toString()
     let icaoRegion = bytes.slice(19..<21).toString()
-    let waypointTypeByte = bytes.count > 26 ? bytes[bytes.startIndex + 26] : ASCII.space
+    let waypointType = try CoordinateParser.parseWaypointType(
+      bytes.slice(26..<29),
+      function: WaypointType.Function.init(enrouteCode:),
+      lineNumber: lineNumber
+    )
 
-    // Waypoint usage class (position 30)
-    let usageClassByte = bytes.count > 30 ? bytes[bytes.startIndex + 30] : ASCII.space
-    let usageClass = WaypointUsage(byte: usageClassByte)
+    // Waypoint usage (positions 29-30)
+    let rnavByte = bytes.count > 29 ? bytes[bytes.startIndex + 29] : ASCII.space
+    let usageByte = bytes.count > 30 ? bytes[bytes.startIndex + 30] : ASCII.space
+    guard let usage = EnrouteWaypoint.Usage(byte: usageByte) else {
+      throw CIFPError.parseError(
+        field: "waypoint usage",
+        value: String(Character(UnicodeScalar(usageByte))),
+        line: lineNumber
+      )
+    }
 
     let coord = CoordinateParser.parseCoordinate(bytes.slice(32..<51))
     let magVar = CoordinateParser.parseMagneticVariation(bytes.slice(74..<79))
@@ -26,7 +37,7 @@ extension CIFPByteParser {
         line: lineNumber
       )
     }
-    guard let waypointType = WaypointType(byte: waypointTypeByte) else {
+    guard let waypointType else {
       throw CIFPError.missingRequiredField(
         field: "waypointType",
         recordType: "EnrouteWaypoint",
@@ -46,7 +57,8 @@ extension CIFPByteParser {
         identifier: identifier,
         icaoRegion: icaoRegion,
         waypointType: waypointType,
-        usageClass: usageClass,
+        usage: usage,
+        isRNAV: rnavByte == ASCII.R,
         coordinate: coord,
         magneticVariation: magVar,
         name: name
@@ -156,13 +168,12 @@ extension CIFPByteParser {
     let icaoRegion = bytes.slice(10..<12).toString()
     let identifier = bytes.slice(13..<18).toString()
 
-    // Waypoint type (position 26)
-    let waypointTypeByte = bytes.count > 26 ? bytes[bytes.startIndex + 26] : ASCII.space
-    let waypointType = WaypointType(byte: waypointTypeByte)
-
-    // Waypoint usage (position 30)
-    let waypointUsageByte = bytes.count > 30 ? bytes[bytes.startIndex + 30] : ASCII.space
-    let waypointUsage = WaypointUsage(byte: waypointUsageByte)
+    // Waypoint type (positions 26-28)
+    let waypointType = try CoordinateParser.parseWaypointType(
+      bytes.slice(26..<29),
+      function: WaypointType.Function.init(terminalCode:),
+      lineNumber: lineNumber
+    )
 
     let coord = CoordinateParser.parseCoordinate(bytes.slice(32..<51))
     let magVar = CoordinateParser.parseMagneticVariation(bytes.slice(74..<79))
@@ -190,7 +201,6 @@ extension CIFPByteParser {
         identifier: identifier,
         waypointICAO: icaoRegion,
         waypointType: waypointType,
-        waypointUsage: waypointUsage,
         coordinate: coord,
         magneticVariation: magVar,
         name: name

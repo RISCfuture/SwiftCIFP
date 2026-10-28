@@ -26,9 +26,6 @@ public struct TerminalWaypoint: Sendable, Codable, CIFPDataLinkable {
   /// Waypoint type.
   public let waypointType: WaypointType?
 
-  /// Waypoint usage.
-  public let waypointUsage: WaypointUsage?
-
   /// Geographic coordinate.
   public let coordinate: Coordinate
 
@@ -45,7 +42,6 @@ public struct TerminalWaypoint: Sendable, Codable, CIFPDataLinkable {
     identifier: String,
     waypointICAO: String,
     waypointType: WaypointType?,
-    waypointUsage: WaypointUsage?,
     coordinate: Coordinate,
     magneticVariation: MagneticVariation,
     name: String
@@ -55,7 +51,6 @@ public struct TerminalWaypoint: Sendable, Codable, CIFPDataLinkable {
     self.identifier = identifier
     self.waypointICAO = waypointICAO
     self.waypointType = waypointType
-    self.waypointUsage = waypointUsage
     self.coordinate = coordinate
     self.magneticVariation = magneticVariation
     self.name = name
@@ -65,7 +60,7 @@ public struct TerminalWaypoint: Sendable, Codable, CIFPDataLinkable {
 
   private enum CodingKeys: String, CodingKey {
     case airportId, icaoRegion, identifier, waypointICAO
-    case waypointType, waypointUsage, coordinate
+    case waypointType, coordinate
     case magneticVariation, name
     // Note: 'data' is excluded to avoid encoding the weak reference
   }

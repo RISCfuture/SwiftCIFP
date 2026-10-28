@@ -451,6 +451,46 @@ enum CoordinateParser {
     )
   }
 
+  /// Parse a waypoint type (3 columns).
+  ///
+  /// - Parameters:
+  ///   - bytes: 3-byte waypoint type field.
+  ///   - function: Decodes column 28, whose codes differ between enroute and terminal
+  ///     waypoints.
+  ///   - lineNumber: Line number for error reporting.
+  /// - Returns: WaypointType, or nil if all columns are blank.
+  /// - Throws: `CIFPError.parseError` if a nonblank column is not a recognized code.
+  static func parseWaypointType<T: RandomAccessCollection>(
+    _ bytes: T,
+    function: (Character) -> WaypointType.Function?,
+    lineNumber: Int = 0
+  ) throws -> WaypointType? where T.Element == UInt8, T.Index == Int {
+    guard bytes.count >= 3, !bytes.isBlank() else { return nil }
+
+    let value = bytes.toRawString()
+    let functionByte = bytes[bytes.startIndex + 1]
+    let decodedFunction = function(Character(UnicodeScalar(functionByte)))
+    guard functionByte == ASCII.space || decodedFunction != nil else {
+      throw CIFPError.parseError(field: "waypoint type", value: value, line: lineNumber)
+    }
+
+    return WaypointType(
+      kind: try parseCode(
+        bytes[bytes.startIndex],
+        field: "waypoint type",
+        value: value,
+        lineNumber: lineNumber
+      ),
+      function: decodedFunction,
+      procedureUse: try parseCode(
+        bytes[bytes.startIndex + 2],
+        field: "waypoint type",
+        value: value,
+        lineNumber: lineNumber
+      )
+    )
+  }
+
   /// Parse a single-character code.
   ///
   /// - Parameters:

@@ -33,6 +33,14 @@
   inbound course were swapped, so `totalDistanceNM` summed courses. The
   direction restriction was read from the boundary code column, and the
   boundary code from the waypoint description.
+- Waypoint types decode all three columns of ARINC 424 field 5.42. Only the
+  first column was read, with several codes misnamed (`R` is a named
+  intersection, not an RNAV waypoint, and `V` a VFR waypoint, not a VHF
+  navaid). The 991 enroute waypoints whose type sits in the second column, such
+  as latitude/longitude intersections, were reported as `other`.
+- VHF navaid usage classes are read from column 30. Column 29, the DME type,
+  was being read instead, so TACANs reported `terminal` and other navaids
+  reported nothing.
 - RNP decodes as a two-digit mantissa and a negative exponent (ARINC 424 field
   5.211), so `031` is 0.3 NM rather than 3.1 NM. A malformed value now fails the
   record.
@@ -85,6 +93,12 @@
   fields are `nil` rather than `undesignated`, `unspecified`, or `none`, so
   `Airway.level` is optional. `AggregationErrorReason.missingAirwayMetadata`
   is replaced by `missingRouteType`.
+- **BREAKING:** `WaypointType` is a struct with `kind`, `function`, and
+  `procedureUse` for its three columns. `EnrouteWaypoint.usageClass` is now
+  `usage`, an `EnrouteWaypoint.Usage` whose blank column is `terminalOnly`
+  per ARINC 424 field 5.82, plus `isRNAV`. `WaypointUsage` and
+  `TerminalWaypoint.waypointUsage`, a field terminal waypoints don't carry,
+  are gone.
 - **BREAKING:** `AltitudeConstraint` follows ARINC 424 field 5.29. The `G`,
   `H`, `I`, `J`, `V`, `X`, and `Y` cases each pair the procedure altitude with
   a glide slope, glide slope intercept, or vertical path altitude.

@@ -618,8 +618,9 @@ struct `Fix tests` {
     let waypoint = EnrouteWaypoint(
       identifier: "DAGGR",
       icaoRegion: "K2",
-      waypointType: .rnav,
-      usageClass: nil,
+      waypointType: WaypointType(kind: .rnav, function: nil, procedureUse: nil),
+      usage: .terminalOnly,
+      isRNAV: false,
       coordinate: Coordinate(latitudeDeg: 34.0, longitudeDeg: -118.0),
       magneticVariation: MagneticVariation(direction: .east, degrees: 14.0),
       name: "DAGGR"
@@ -635,8 +636,7 @@ struct `Fix tests` {
       icaoRegion: "K2",
       identifier: "LIMMA",
       waypointICAO: "K2",
-      waypointType: .rnav,
-      waypointUsage: nil,
+      waypointType: WaypointType(kind: .rnav, function: nil, procedureUse: nil),
       coordinate: Coordinate(latitudeDeg: 33.95, longitudeDeg: -118.35),
       magneticVariation: MagneticVariation(direction: .east, degrees: 14.0),
       name: "LIMMA"
@@ -905,8 +905,9 @@ struct `CIFPData tests` {
     let waypoint = EnrouteWaypoint(
       identifier: "DAGGR",
       icaoRegion: "K2",
-      waypointType: .rnav,
-      usageClass: nil,
+      waypointType: WaypointType(kind: .rnav, function: nil, procedureUse: nil),
+      usage: .terminalOnly,
+      isRNAV: false,
       coordinate: Coordinate(latitudeDeg: 34.0, longitudeDeg: -118.0),
       magneticVariation: MagneticVariation(direction: .east, degrees: 14.0),
       name: "DAGGR"
@@ -940,8 +941,7 @@ struct `CIFPData tests` {
       icaoRegion: "K2",
       identifier: "LIMMA",
       waypointICAO: "K2",
-      waypointType: .rnav,
-      waypointUsage: nil,
+      waypointType: WaypointType(kind: .rnav, function: nil, procedureUse: nil),
       coordinate: Coordinate(latitudeDeg: 33.95, longitudeDeg: -118.35),
       magneticVariation: MagneticVariation(direction: .east, degrees: 14.0),
       name: "LIMMA"
@@ -974,8 +974,9 @@ struct `CIFPData tests` {
     let waypoint = EnrouteWaypoint(
       identifier: "DAGGR",
       icaoRegion: "K2",
-      waypointType: .rnav,
-      usageClass: nil,
+      waypointType: WaypointType(kind: .rnav, function: nil, procedureUse: nil),
+      usage: .terminalOnly,
+      isRNAV: false,
       coordinate: Coordinate(latitudeDeg: 34.0, longitudeDeg: -118.0),
       magneticVariation: MagneticVariation(direction: .east, degrees: 14.0),
       name: "DAGGR"
@@ -1095,6 +1096,18 @@ private enum FAARecords {
   /// EVRTT on a CYXX STAR, crossed between 14,000 and 16,000 feet.
   static let betweenAltitudes =
     "SCANP CYXXCYEMADEE74KONAH 020EVRTTK1EA0E       TF                                 B 1600014000                             054822607"
+
+  /// An unnamed full-degree latitude/longitude intersection off the California coast.
+  static let latitudeLongitudeWaypoint =
+    "SPACEAENRT   KL12G P 0     V    N32000000W120000000                       E0113     NAR           KL12G                    202942605"
+
+  /// CIFJI, a named intersection used on high-altitude airways.
+  static let highAltitudeIntersection =
+    "SCANEAENRT   CIFJI PA0    R   H N59324730W154332210                       E0123     NAR           CIFJI                    009322605"
+
+  /// The Atlantic City VORTAC, a low-altitude navaid.
+  static let atlanticCityVORTAC =
+    "SUSAD        ACY   K6011715VTLW N39272115W074343473    N39272115W074343473W0100000671     NARATLANTIC CITY                 249602312"
 
   /// The first three fixes of V25.
   static let victor25 = [
@@ -1387,6 +1400,44 @@ struct `approach identification` {
     #expect(approaches.map(\.approachType) == [.rnav, .rnav])
     #expect(approaches.first?.legs.map(\.sequenceNumber) == [10, 20, 30])
     #expect(approaches.first?.missedApproachLegs.map(\.sequenceNumber) == [40, 50, 60])
+  }
+}
+
+// MARK: - Waypoint and Navaid Class Decoding Tests
+
+@Suite
+struct `waypoint type decoding` {
+  @Test
+  func `decodes a function published without a fix kind`() throws {
+    let cifp = try FAARecords.parse([FAARecords.latitudeLongitudeWaypoint])
+    let waypointType = try #require(cifp.enrouteWaypoints["KL12G"]).waypointType
+
+    #expect(waypointType.kind == nil)
+    #expect(waypointType.function == .fullDegreeLatitudeLongitudeIntersection)
+  }
+
+  @Test
+  func `decodes the fix kind and altitude structure`() throws {
+    let cifp = try FAARecords.parse([FAARecords.highAltitudeIntersection])
+    let waypoint = try #require(cifp.enrouteWaypoints["CIFJI"])
+
+    #expect(waypoint.waypointType.kind == .namedIntersection)
+    #expect(waypoint.usage == .highAltitude)
+    #expect(!waypoint.isRNAV)
+  }
+
+  @Test
+  func `assigns shared codes by waypoint section`() {
+    #expect(WaypointType.Function(enrouteCode: "P") == .pitchAndCatchPoint)
+    #expect(WaypointType.Function(terminalCode: "P") == .unnamedStepDownFix)
+    #expect(WaypointType.Function(enrouteCode: "S") == .highAltitudeRedesignAirspaceWaypoint)
+    #expect(WaypointType.Function(terminalCode: "S") == .namedStepDownFix)
+  }
+
+  @Test
+  func `reads a VHF navaid's usage class`() throws {
+    let cifp = try FAARecords.parse([FAARecords.atlanticCityVORTAC])
+    #expect(cifp.vhfNavaids["ACY"]?.usageClass == .low)
   }
 }
 

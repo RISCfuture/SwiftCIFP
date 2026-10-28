@@ -21,8 +21,8 @@ extension CIFPByteParser {
       )
     }
 
-    // Navaid usage class (second character of class field, position 28)
-    let usageClassByte = bytes.count > 28 ? bytes[bytes.startIndex + 28] : ASCII.space
+    // Navaid usage class (third character of class field, position 29)
+    let usageClassByte = bytes.count > 29 ? bytes[bytes.startIndex + 29] : ASCII.space
     let usageClass = NavaidUsageClass(byte: usageClassByte)
 
     let vorCoord = CoordinateParser.parseCoordinate(bytes.slice(32..<51))

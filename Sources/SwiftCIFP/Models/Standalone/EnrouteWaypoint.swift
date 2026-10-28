@@ -14,8 +14,11 @@ public struct EnrouteWaypoint: Sendable, Codable {
   /// Waypoint type.
   public let waypointType: WaypointType
 
-  /// Waypoint usage class.
-  public let usageClass: WaypointUsage?
+  /// The altitude structure the waypoint is used in.
+  public let usage: Usage
+
+  /// Whether the waypoint is used on RNAV routes.
+  public let isRNAV: Bool
 
   /// Geographic coordinate.
   public let coordinate: Coordinate
@@ -25,6 +28,26 @@ public struct EnrouteWaypoint: Sendable, Codable {
 
   /// Waypoint name/description.
   public let name: String
+}
+
+// MARK: - Usage
+
+extension EnrouteWaypoint {
+  /// The altitude structure an enroute waypoint is used in (ARINC 424 field 5.82,
+  /// column 31).
+  public enum Usage: Character, Sendable, Codable, CaseIterable, ByteInitializable {
+    /// High and low altitude.
+    case highAndLowAltitude = "B"
+
+    /// High altitude.
+    case highAltitude = "H"
+
+    /// Low altitude.
+    case lowAltitude = "L"
+
+    /// Terminal use only, published as a blank column.
+    case terminalOnly = " "
+  }
 }
 
 // MARK: - CustomStringConvertible
