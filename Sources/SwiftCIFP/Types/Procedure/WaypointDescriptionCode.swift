@@ -1,174 +1,203 @@
 import Foundation
 
-/// Waypoint description code position 1 - Airport/Heliport reference.
-public enum WaypointDescPosition1: Character, Sendable, Codable, CaseIterable, ByteInitializable {
-  /// Airport as waypoint.
-  case airport = "A"
-
-  /// Essential waypoint.
-  case essential = "E"
-
-  /// Off airway.
-  case offAirway = "F"
-
-  /// Runway as waypoint.
-  case runway = "G"
-
-  /// Heliport as waypoint.
-  case heliport = "H"
-
-  /// NDB navaid.
-  case ndb = "N"
-
-  /// Phantom waypoint.
-  case phantom = "P"
-
-  /// Non-essential reporting.
-  case nonEssential = "R"
-
-  /// Transition.
-  case transition = "T"
-
-  /// VHF navaid.
-  case vhf = "V"
-}
-
-/// Waypoint description code position 2 - Waypoint location.
-public enum WaypointDescPosition2: Character, Sendable, Codable, CaseIterable, ByteInitializable {
-  /// Final approach.
-  case finalApproach = "A"
-
-  /// Initial/intermediate approach.
-  case initialIntermediate = "B"
-
-  /// Terminal.
-  case terminal = "C"
-
-  /// SID.
-  case sid = "D"
-
-  /// Enroute.
-  case enroute = "E"
-
-  /// Missed approach.
-  case missedApproach = "M"
-
-  /// Oceanic.
-  case oceanic = "O"
-
-  /// STAR.
-  case star = "R"
-}
-
-/// Waypoint description code position 3 - Waypoint function.
-public enum WaypointDescPosition3: Character, Sendable, Codable, CaseIterable, ByteInitializable {
-  /// Arrival waypoint.
-  case arrival = "A"
-
-  /// RF leg center fix.
-  case rfCenter = "B"
-
-  /// Intermediate approach hold.
-  case intermediateHold = "C"
-
-  /// SID/STAR.
-  case sidStar = "D"
-
-  /// Procedure end.
-  case procedureEnd = "E"
-
-  /// Published hold.
-  case publishedHold = "H"
-
-  /// Final approach course fix.
-  case finalApproachCourse = "I"
-
-  /// FAF.
-  case finalApproachFix = "K"
-
-  /// MAP.
-  case missedApproachPoint = "M"
-
-  /// Path point fix.
-  case pathPoint = "P"
-
-  /// Course reversal.
-  case courseReversal = "R"
-
-  /// Step down fix.
-  case stepDownFix = "S"
-}
-
-/// Waypoint description code position 4 - Navigation specification.
-public enum WaypointDescPosition4: Character, Sendable, Codable, CaseIterable, ByteInitializable {
-  /// ATC compulsory reporting.
-  case atcCompulsory = "A"
-
-  /// Conditional reporting.
-  case conditional = "C"
-
-  /// End of route.
-  case endOfRoute = "E"
-
-  /// GPS required.
-  case gpsRequired = "G"
-
-  /// NDB required.
-  case ndbRequired = "N"
-
-  /// Continuous reporting.
-  case continuous = "P"
-
-  /// VOR required.
-  case vorRequired = "V"
-}
-
-/// Waypoint description code (4 positions).
+/// Waypoint description code (ARINC 424 field 5.17, record columns 40–43).
 ///
-/// Each position in the 4-character code has specific meaning.
+/// Each column carries an independent meaning. A blank column is `nil`.
 public struct WaypointDescriptionCode: Sendable, Codable, Equatable, Hashable {
-  /// Position 1 - Airport/Heliport reference.
-  public let position1: WaypointDescPosition1?
+  /// Column 40 - Fix type.
+  public let fixType: FixType?
 
-  /// Position 2 - Waypoint location.
-  public let position2: WaypointDescPosition2?
+  /// Column 41 - Fly-over or fly-by, and charting status. A blank column is a fly-by fix.
+  public let fixStatus: FixStatus?
 
-  /// Position 3 - Waypoint function.
-  public let position3: WaypointDescPosition3?
+  /// Column 42 - Fix function.
+  public let fixFunction: FixFunction?
 
-  /// Position 4 - Navigation specification.
-  public let position4: WaypointDescPosition4?
+  /// Column 43 - Approach role.
+  public let approachRole: ApproachRole?
+
+  /// The four-character code as published, with blank columns as spaces.
+  public var code: String {
+    String(
+      [fixType?.rawValue, fixStatus?.rawValue, fixFunction?.rawValue, approachRole?.rawValue]
+        .map { $0 ?? " " }
+    )
+  }
+
+  /// Whether this is an initial approach fix (IAF), including one with holding or one that
+  /// is also the final approach course fix.
+  public var isIAF: Bool {
+    switch approachRole {
+      case .initialApproachFix, .initialApproachFixWithHolding, .initialApproachFixWithFACF:
+        true
+      default:
+        false
+    }
+  }
+
+  /// Whether this is an intermediate approach fix.
+  public var isIntermediateFix: Bool {
+    approachRole == .intermediateApproachFix
+  }
 
   /// Whether this is a final approach fix (FAF).
   public var isFAF: Bool {
-    position3 == .finalApproachFix
+    approachRole == .finalApproachFix
+  }
+
+  /// Whether this is a final approach course fix (FACF).
+  public var isFACF: Bool {
+    approachRole == .finalApproachCourseFix || approachRole == .initialApproachFixWithFACF
   }
 
   /// Whether this is a missed approach point (MAP).
   public var isMAP: Bool {
-    position3 == .missedApproachPoint
+    approachRole == .missedApproachPoint
   }
 
-  /// Whether this is a step-down fix.
+  /// Whether this leg begins the missed approach procedure.
+  public var isFirstMissedApproachLeg: Bool {
+    fixFunction == .firstMissedApproachLeg
+  }
+
+  /// Whether this is a named or unnamed step-down fix.
   public var isStepDown: Bool {
-    position3 == .stepDownFix
+    switch fixFunction {
+      case .namedStepDown, .unnamedStepDownBeforeFAF, .unnamedStepDownAfterFAF:
+        true
+      default:
+        false
+    }
   }
 
-  /// Whether this is a flyover waypoint.
+  /// Whether this is a fly-over waypoint. Waypoints that are not fly-over are fly-by.
   public var isFlyover: Bool {
-    position1 == .essential
+    fixStatus == .flyover || fixStatus == .flyoverEndOfRoute
   }
 
   /// Creates a waypoint description code.
   init(
-    position1: WaypointDescPosition1?,
-    position2: WaypointDescPosition2?,
-    position3: WaypointDescPosition3?,
-    position4: WaypointDescPosition4?
+    fixType: FixType?,
+    fixStatus: FixStatus?,
+    fixFunction: FixFunction?,
+    approachRole: ApproachRole?
   ) {
-    self.position1 = position1
-    self.position2 = position2
-    self.position3 = position3
-    self.position4 = position4
+    self.fixType = fixType
+    self.fixStatus = fixStatus
+    self.fixFunction = fixFunction
+    self.approachRole = approachRole
+  }
+}
+
+// MARK: - Column Codes
+
+extension WaypointDescriptionCode {
+  /// Column 40: the fix type.
+  public enum FixType: Character, Sendable, Codable, CaseIterable, ByteInitializable {
+    /// Airport as waypoint.
+    case airport = "A"
+
+    /// Essential waypoint.
+    case essential = "E"
+
+    /// Off airway.
+    case offAirway = "F"
+
+    /// Runway or helipad as waypoint.
+    case runway = "G"
+
+    /// Heliport as waypoint.
+    case heliport = "H"
+
+    /// NDB navaid.
+    case ndb = "N"
+
+    /// Phantom waypoint.
+    case phantom = "P"
+
+    /// Non-essential reporting.
+    case nonEssential = "R"
+
+    /// Transition essential waypoint.
+    case transitionEssential = "T"
+
+    /// VHF navaid.
+    case vhf = "V"
+  }
+
+  /// Column 41: fly-over or fly-by, and charting status.
+  public enum FixStatus: Character, Sendable, Codable, CaseIterable, ByteInitializable {
+    /// Fly-over waypoint ending a SID or STAR route, an approach transition, or a final
+    /// approach.
+    case flyoverEndOfRoute = "B"
+
+    /// End of an en route airway or terminal procedure route.
+    case endOfRoute = "E"
+
+    /// Uncharted airway intersection.
+    case unchartedAirwayIntersection = "U"
+
+    /// Fly-over waypoint.
+    case flyover = "Y"
+  }
+
+  /// Column 42: the fix function.
+  public enum FixFunction: Character, Sendable, Codable, CaseIterable, ByteInitializable {
+    /// Unnamed step-down fix after the final approach fix.
+    case unnamedStepDownAfterFAF = "A"
+
+    /// Unnamed step-down fix before the final approach fix.
+    case unnamedStepDownBeforeFAF = "B"
+
+    /// ATC compulsory reporting point.
+    case atcCompulsory = "C"
+
+    /// Oceanic gateway.
+    case oceanicGateway = "G"
+
+    /// First leg of the missed approach procedure.
+    ///
+    /// This marks where the missed approach sequence begins, which is the leg after the
+    /// missed approach point. It does not identify the missed approach point itself.
+    case firstMissedApproachLeg = "M"
+
+    /// Path point fix.
+    case pathPoint = "P"
+
+    /// Fix marking a course change on the final approach.
+    case turningFinalApproach = "R"
+
+    /// Named step-down fix.
+    case namedStepDown = "S"
+  }
+
+  /// Column 43: the fix's role in an approach.
+  public enum ApproachRole: Character, Sendable, Codable, CaseIterable, ByteInitializable {
+    /// Initial approach fix (IAF).
+    case initialApproachFix = "A"
+
+    /// Intermediate approach fix.
+    case intermediateApproachFix = "B"
+
+    /// Initial approach fix with holding.
+    case initialApproachFixWithHolding = "C"
+
+    /// Initial approach fix that is also the final approach course fix.
+    case initialApproachFixWithFACF = "D"
+
+    /// Final end point fix.
+    case finalEndPoint = "E"
+
+    /// Published or database final approach fix (FAF).
+    case finalApproachFix = "F"
+
+    /// Holding fix.
+    case holdingFix = "H"
+
+    /// Final approach course fix (FACF).
+    case finalApproachCourseFix = "I"
+
+    /// Published missed approach point (MAP).
+    case missedApproachPoint = "M"
   }
 }

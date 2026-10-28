@@ -2,7 +2,58 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Waypoint description codes now decode each column under FAA Order 8260.19G,
+  Appendix N. Column 43 carries the approach role, so `isFAF` and `isMAP` read
+  `F` and `M` there instead of column 42. Column 41 carries fly-over status, so
+  `isFlyover` reads `Y` or `B` there instead of treating every essential
+  waypoint as fly-over. On KOAK ILS RWY 12, PLAZA is now the final approach fix
+  and RW12 the missed approach point, and `Approach.finalApproachFix` and
+  `missedApproachPoint` find both. Codes the old enums lacked (`B`, `D`, `F`,
+  `H`, `I`, and `M` in column 43; `B` and `Y` in column 41) used to come back
+  as `nil` with no diagnostic. An unrecognized character now fails the record
+  through the error callback.
+- A blank altitude description is the "at" restriction (ARINC 424 field 5.29),
+  so altitudes published with one are no longer dropped. Cycle 2610 has 16,461
+  such legs, including RAIDR's 5,000-foot crossing on KOAK ILS RWY 12.
+- `between` constraints had their altitudes swapped. ARINC puts the higher
+  altitude in the first field.
+- RNP decodes as a two-digit mantissa and a negative exponent (ARINC 424 field
+  5.211), so `031` is 0.3 NM rather than 3.1 NM. A malformed value now fails the
+  record.
+- Airspace boundary sequence numbers and multiple codes are read from their
+  published columns. Every boundary used to get sequence number zero, and
+  controlled airspace never had a multiple code or class.
+- Each airspace volume is its own `ControlledAirspace` or `SpecialUseAirspace`.
+  Volumes that share a center or designation used to merge into one, taking the
+  first volume's limits. Cycle 2610 now yields 1,281 controlled airspace volumes
+  rather than 696.
+- Boundary-via codes follow ARINC 424 field 5.118: `H` is a rhumb line, `R` a
+  clockwise arc, and `L` a counter-clockwise arc. The end-of-description marker
+  in the second column is now `AirspaceBoundary.isEndOfDescription`. Arc
+  origin, distance, and bearing are read for clockwise arcs, which `R` used to
+  hide.
+- Airspace and heliport approach continuation records are no longer decoded as
+  extra boundaries or legs.
+
 ### Changed
+
+- **BREAKING:** `WaypointDescriptionCode` names its columns for what they
+  hold. `position1` through `position4` are now `fixType`, `fixStatus`,
+  `fixFunction`, and `approachRole`, typed by the nested `FixType`,
+  `FixStatus`, `FixFunction`, and `ApproachRole` enums, which replace
+  `WaypointDescPosition1` through `WaypointDescPosition4`. Their cases match
+  each column's published codes, and `FixType.transition` is now
+  `transitionEssential`. The type adds `code`, `isIAF`, `isIntermediateFix`,
+  `isFACF`, and `isFirstMissedApproachLeg`.
+- **BREAKING:** `AltitudeConstraint` follows ARINC 424 field 5.29. The `G`,
+  `H`, `I`, `J`, `V`, `X`, and `Y` cases each pair the procedure altitude with
+  a glide slope, glide slope intercept, or vertical path altitude.
+  `conditionalAtOrAbove` covers `C`.
+- **BREAKING:** `BoundaryVia` drops `end` and `returnToOrigin` and adds
+  `arcByEdge`. The letters for `rhumbLine`, `arcClockwise`, and
+  `arcCounterClockwise` change to `H`, `R`, and `L`.
 
 - **BREAKING:** The platform floor rises to macOS 26, iOS 26, tvOS 26, watchOS
   26, and visionOS 26. CIFP fields are now decoded through `UTF8Span` over the

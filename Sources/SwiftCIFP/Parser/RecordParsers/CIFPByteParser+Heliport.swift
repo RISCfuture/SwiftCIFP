@@ -82,6 +82,10 @@ extension CIFPByteParser {
     _ bytes: ArraySlice<UInt8>,
     lineNumber: Int
   ) throws -> ParsedRecord {
+    // Primary records have '0', '1', or blank at position 38; continuation records have '2'+
+    let contByte = bytes.count > 38 ? bytes[bytes.startIndex + 38] : ASCII.space
+    if contByte >= ASCII.two && contByte <= ASCII.nine { return .ignoredContinuation }
+
     let heliportIdent = bytes.slice(6..<10).toString()
     let icaoRegion = bytes.slice(10..<12).toString()
     let procedureIdent = bytes.slice(13..<19).toString()
@@ -95,12 +99,15 @@ extension CIFPByteParser {
     let fixSectionCode = CoordinateParser.parseSectionCode(bytes.slice(36..<38))
 
     // Waypoint description (4 positions)
-    let waypointDesc = CoordinateParser.parseWaypointDescription(bytes.slice(39..<43))
+    let waypointDesc = try CoordinateParser.parseWaypointDescription(
+      bytes.slice(39..<43),
+      lineNumber: lineNumber
+    )
 
     // Turn direction and RNP
     let turnDirByte = bytes.count > 43 ? bytes[bytes.startIndex + 43] : ASCII.space
     let turnDirection = TurnDirection(byte: turnDirByte)
-    let rnp = CoordinateParser.parseRNP(bytes.slice(44..<47))
+    let rnp = try CoordinateParser.parseRNP(bytes.slice(44..<47), lineNumber: lineNumber)
 
     // Path terminator
     let pathTermStr = bytes.slice(47..<49).toString()
@@ -124,25 +131,7 @@ extension CIFPByteParser {
     let course = CoordinateParser.parseCourse(bytes.slice(70..<74))
     let distance = CoordinateParser.parseDistance(bytes.slice(74..<78))
 
-    // Altitude description (position 82)
-    let altDescByte = bytes.count > 82 ? bytes[bytes.startIndex + 82] : ASCII.space
-    let altitudeDesc = AltitudeDescription(byte: altDescByte)
-
-    // Altitudes
-    let alt1 = try CoordinateParser.parseAltitude(bytes.slice(84..<89), lineNumber: lineNumber)
-    let alt2 = try CoordinateParser.parseAltitude(bytes.slice(89..<94), lineNumber: lineNumber)
-
-    // Build altitude constraint from description and altitudes
-    let altitudeConstraint: AltitudeConstraint?
-    if let altitudeDesc {
-      altitudeConstraint = AltitudeConstraint.from(
-        description: altitudeDesc,
-        altitude1: alt1,
-        altitude2: alt2
-      )
-    } else {
-      altitudeConstraint = nil
-    }
+    let altitudeConstraint = try parseAltitudeConstraint(bytes, lineNumber: lineNumber)
 
     // Transition altitude
     let transAlt = CoordinateParser.parseTransitionAltitude(bytes.slice(94..<99))
@@ -161,9 +150,7 @@ extension CIFPByteParser {
     let centerFixIdent = bytes.slice(106..<111).toString()
     let centerFixICAO = bytes.slice(112..<114).toString()
 
-    // Check for missed approach indicator in waypoint description position 3 (position 41 in record)
-    let heliMissedByte = bytes.count > 41 ? bytes[bytes.startIndex + 41] : ASCII.space
-    let heliIsMissedApproach = heliMissedByte == ASCII.M
+    let heliIsMissedApproach = waypointDesc?.isFirstMissedApproachLeg ?? false
 
     guard let seqNum else {
       throw CIFPError.missingRequiredField(

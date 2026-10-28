@@ -1,8 +1,9 @@
 import Foundation
 
-/// Altitude description code.
+/// Altitude description code (ARINC 424 field 5.29).
 ///
-/// Specifies how altitude values should be interpreted for a procedure leg.
+/// Specifies how altitude values should be interpreted for a procedure leg. A blank
+/// description means ``at``.
 enum AltitudeDescription: Character, Sendable, Codable, CaseIterable, ByteInitializable {
   /// At or above altitude 1.
   case atOrAbove = "+"
@@ -13,27 +14,33 @@ enum AltitudeDescription: Character, Sendable, Codable, CaseIterable, ByteInitia
   /// At altitude 1.
   case at = "@"
 
-  /// Between altitude 1 and altitude 2.
+  /// At or above altitude 2 to at or below altitude 1, which is always the higher.
   case between = "B"
 
-  /// Glide slope altitude at fix (ILS).
-  case glideSlopeIntercept = "G"
+  /// At or above altitude 2, as a conditional altitude termination on a SID leg.
+  case conditionalAtOrAbove = "C"
 
-  /// Glide path altitude at fix (RNAV).
-  case glidePathIntercept = "H"
+  /// At altitude 1, with the glide slope altitude in altitude 2 (FAF, precision approach).
+  case atWithGlideSlope = "G"
 
-  /// At or above altitude 1 to at or below altitude 2.
-  case atOrAboveToAtOrBelow = "I"
+  /// At or above altitude 1, with the glide slope altitude in altitude 2 (FAF, precision
+  /// approach).
+  case atOrAboveWithGlideSlope = "H"
 
-  /// At or above altitude 1 to at altitude 2.
-  case atOrAboveToAt = "J"
+  /// At altitude 1, with the glide slope intercept altitude in altitude 2 (FACF, precision
+  /// approach).
+  case atWithGlideSlopeIntercept = "I"
 
-  /// At altitude 1 to at or below altitude 2.
-  case atToAtOrBelow = "V"
+  /// At or above altitude 1, with the glide slope intercept altitude in altitude 2 (FACF,
+  /// precision approach).
+  case atOrAboveWithGlideSlopeIntercept = "J"
 
-  /// At altitude 1 to at or above altitude 2.
-  case atToAtOrAbove = "X"
+  /// At or above altitude 1, with the vertical path altitude in altitude 2 (step-down fix).
+  case atOrAboveWithVerticalPath = "V"
 
-  /// At or below altitude 1 to at or above altitude 2.
-  case atOrBelowToAtOrAbove = "Y"
+  /// At altitude 1, with the vertical path altitude in altitude 2 (step-down fix).
+  case atWithVerticalPath = "X"
+
+  /// At or below altitude 1, with the vertical path altitude in altitude 2 (step-down fix).
+  case atOrBelowWithVerticalPath = "Y"
 }

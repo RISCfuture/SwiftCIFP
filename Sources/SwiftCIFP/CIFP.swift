@@ -491,11 +491,11 @@ private struct CIFPBuilder {
         let key = "\(r.airportId)-\(r.procedureId)-\(r.transitionId ?? "")"
         approachLegs[key, default: []].append(r)
       case .controlledAirspace(let r):
-        let key = r.centerOrDesignation
-        controlledAirspaceRecords[key, default: []].append(r)
+        controlledAirspaceRecords[r.volumeKey, default: []].append(r)
       case .specialUseAirspace(let r):
-        let key = r.centerOrDesignation
-        specialUseAirspaceRecords[key, default: []].append(r)
+        specialUseAirspaceRecords[r.volumeKey, default: []].append(r)
+      case .ignoredContinuation:
+        break
       case .heliport(let r):
         heliports[r.id] = r
       case .heliportWaypoint(let r):
@@ -811,6 +811,7 @@ private struct CIFPBuilder {
   {
     var controlledAirspaces: [ControlledAirspace] = []
     for (key, records) in controlledAirspaceRecords {
+      let records = records.sorted(by: { $0.boundary < $1.boundary })
       guard let first = records.first else {
         errorCallback?(
           CIFPError.aggregationError(
@@ -829,7 +830,7 @@ private struct CIFPBuilder {
           airspaceClass: first.airspaceClass,
           multipleCode: first.multipleCode,
           name: first.name,
-          boundaries: records.map(\.boundary).sorted(by: { $0.sequenceNumber < $1.sequenceNumber }),
+          boundaries: records.map(\.boundary),
           lowerLimit: first.lowerLimit,
           upperLimit: first.upperLimit
         )
@@ -843,6 +844,7 @@ private struct CIFPBuilder {
   {
     var specialUseAirspaces: [SpecialUseAirspace] = []
     for (key, records) in specialUseAirspaceRecords {
+      let records = records.sorted(by: { $0.boundary < $1.boundary })
       guard let first = records.first,
         let restrictiveType = first.restrictiveType
       else {
@@ -869,7 +871,7 @@ private struct CIFPBuilder {
           designation: first.centerOrDesignation,
           multipleCode: first.multipleCode,
           name: first.name,
-          boundaries: records.map(\.boundary).sorted(by: { $0.sequenceNumber < $1.sequenceNumber }),
+          boundaries: records.map(\.boundary),
           lowerLimit: first.lowerLimit,
           upperLimit: first.upperLimit
         )

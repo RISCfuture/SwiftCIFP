@@ -21,6 +21,7 @@ enum ParsedRecord: Sendable {
   case approachLeg(ProcedureLegRecord)
   case controlledAirspace(AirspaceBoundaryRecord)
   case specialUseAirspace(AirspaceBoundaryRecord)
+  case ignoredContinuation
   case heliport(Heliport)
   case heliportWaypoint(HeliportWaypoint)
   case heliportSIDLeg(ProcedureLegRecord)
@@ -92,6 +93,7 @@ struct PathPointContinuationRecord: Sendable {
 /// Intermediate airspace boundary record.
 struct AirspaceBoundaryRecord: Sendable {
   let icaoRegion: String
+  let airspaceType: Character?
   let centerOrDesignation: String
   let airspaceClass: AirspaceClass?
   let restrictiveType: RestrictiveAirspaceType?
@@ -100,6 +102,17 @@ struct AirspaceBoundaryRecord: Sendable {
   let boundary: AirspaceBoundary
   let lowerLimit: Altitude?
   let upperLimit: Altitude?
+
+  /// Identifies the airspace volume this boundary segment belongs to.
+  var volumeKey: String {
+    [
+      icaoRegion,
+      airspaceType.map(String.init) ?? "",
+      restrictiveType.map { String($0.rawValue) } ?? "",
+      centerOrDesignation,
+      multipleCode ?? ""
+    ].joined(separator: "-")
+  }
 }
 
 /// Intermediate approach continuation record for SBAS/LPV data.

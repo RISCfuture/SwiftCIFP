@@ -325,14 +325,25 @@ enum CoordinateParser {
 
   /// Parse an RNP (Required Navigation Performance) value.
   ///
-  /// RNP is stored as a 3-digit value in tenths of NM (e.g., "010" = 1.0 NM).
-  /// - Parameter bytes: 3-byte RNP field.
+  /// RNP is stored as a two-digit mantissa followed by a one-digit negative exponent
+  /// (ARINC 424 field 5.211): "031" = 3 × 10⁻¹ = 0.3 NM, "302" = 0.3 NM, "010" = 1.0 NM.
+  /// - Parameters:
+  ///   - bytes: 3-byte RNP field.
+  ///   - lineNumber: Line number for error reporting.
   /// - Returns: RNP in nautical miles, or nil if blank.
+  /// - Throws: `CIFPError.parseError` if the field is not three digits.
   static func parseRNP<T: RandomAccessCollection>(
-    _ bytes: T
-  ) -> Double? where T.Element == UInt8, T.Index == Int {
-    guard !bytes.isBlank(), let raw = bytes.parseUInt() else { return nil }
-    return Double(raw) / 10.0
+    _ bytes: T,
+    lineNumber: Int = 0
+  ) throws -> Double? where T.Element == UInt8, T.Index == Int {
+    guard !bytes.isBlank() else { return nil }
+    guard bytes.count == 3, bytes.allSatisfy(ASCII.isDigit),
+      let mantissa = bytes.slice(0..<2).parseUInt(),
+      let exponent = bytes.slice(2..<3).parseUInt()
+    else {
+      throw CIFPError.parseError(field: "RNP", value: bytes.toRawString(), line: lineNumber)
+    }
+    return Double(mantissa) / pow(10, Double(exponent))
   }
 
   /// Parse an arc radius value for RF legs.
@@ -382,31 +393,56 @@ enum CoordinateParser {
     return bytes.parseInt()
   }
 
-  /// Parse a waypoint description code (4 positions).
+  /// Parse a waypoint description code (4 columns).
   ///
-  /// - Parameter bytes: 4-byte waypoint description field.
-  /// - Returns: WaypointDescriptionCode, or nil if all positions are blank/unknown.
+  /// - Parameters:
+  ///   - bytes: 4-byte waypoint description field.
+  ///   - lineNumber: Line number for error reporting.
+  /// - Returns: WaypointDescriptionCode, or nil if all columns are blank.
+  /// - Throws: `CIFPError.parseError` if a nonblank column is not a recognized code.
   static func parseWaypointDescription<T: RandomAccessCollection>(
-    _ bytes: T
-  ) -> WaypointDescriptionCode? where T.Element == UInt8, T.Index == Int {
-    guard bytes.count >= 4 else { return nil }
+    _ bytes: T,
+    lineNumber: Int = 0
+  ) throws -> WaypointDescriptionCode? where T.Element == UInt8, T.Index == Int {
+    guard bytes.count >= 4, !bytes.isBlank() else { return nil }
 
-    let pos1 = WaypointDescPosition1(byte: bytes[bytes.startIndex])
-    let pos2 = WaypointDescPosition2(byte: bytes[bytes.startIndex + 1])
-    let pos3 = WaypointDescPosition3(byte: bytes[bytes.startIndex + 2])
-    let pos4 = WaypointDescPosition4(byte: bytes[bytes.startIndex + 3])
-
-    // Return nil if all positions are blank
-    if pos1 == nil && pos2 == nil && pos3 == nil && pos4 == nil {
-      return nil
+    func column<Code: ByteInitializable>(_ offset: Int) throws -> Code? {
+      try parseCode(
+        bytes[bytes.startIndex + offset],
+        field: "waypoint description",
+        value: bytes.toRawString(),
+        lineNumber: lineNumber
+      )
     }
 
     return WaypointDescriptionCode(
-      position1: pos1,
-      position2: pos2,
-      position3: pos3,
-      position4: pos4
+      fixType: try column(0),
+      fixStatus: try column(1),
+      fixFunction: try column(2),
+      approachRole: try column(3)
     )
+  }
+
+  /// Parse a single-character code.
+  ///
+  /// - Parameters:
+  ///   - byte: The code character.
+  ///   - field: Field name for error reporting.
+  ///   - value: Field contents for error reporting.
+  ///   - lineNumber: Line number for error reporting.
+  /// - Returns: The decoded code, or nil if the character is blank.
+  /// - Throws: `CIFPError.parseError` if the character is not a recognized code.
+  static func parseCode<Code: ByteInitializable>(
+    _ byte: UInt8,
+    field: String,
+    value: String,
+    lineNumber: Int
+  ) throws -> Code? {
+    guard byte != ASCII.space else { return nil }
+    guard let code = Code(byte: byte) else {
+      throw CIFPError.parseError(field: field, value: value, line: lineNumber)
+    }
+    return code
   }
 
   /// Parse a section code from a 2-byte field.

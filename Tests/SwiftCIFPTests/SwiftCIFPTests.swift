@@ -1044,3 +1044,275 @@ struct `CIFPData tests` {
     #expect(fix == nil)
   }
 }
+
+// MARK: - Procedure Leg Decoding Tests
+
+/// Records from the October 1, 2026 FAA distribution (cycle 2610).
+private enum FAARecords {
+  static let oakland =
+    "SUSAP KOAKK2AOAK     0     105YHN37431654W122131614E014000009         1800018000C    MNAR    OAKLAND SAN FRANCISCO BAY     720262510"
+
+  /// KOAK ILS or LOC RWY 12: the RAIDR transition followed by the common route.
+  static let oaklandILS12 = [
+    "SUSAP KOAKK2FI12   ARAIDR 010RAIDRK2PC0E  A    IF                                   05000     18000                 0 PS   724561606",
+    "SUSAP KOAKK2FI12   ARAIDR 020ALCATK2PC0EE B 010TF IAAZK2      29600139        PI  + 02900                           0 PS   724572210",
+    "SUSAP KOAKK2FI12   I      010ALCATK2PC0E  I    IF IAAZK2      29600139        PI  J 029000180018000                 0 DS   724581311",
+    "SUSAP KOAKK2FI12   I      020PLAZAK2PC0E  F    CF IAAZK2      2960007811600061PI  G 0180001800            OAK   K2D 0 DS   724592004",
+    "SUSAP KOAKK2FI12   I      030RW12 K2PG0GY M    CF IAAZK2      2960001811600060PI    00064             -275          0 DS   724601311",
+    "SUSAP KOAKK2FI12   I      040         0  M     VI                     1160                                          0 DS   724611503",
+    "SUSAP KOAKK2FI12   I      050HISISK2PC0E       CF OAK K2      1306002813060030D   - 01600                           0 DS   724621503",
+    "SUSAP KOAKK2FI12   I      060         0        VI                     0900                                          0 DS   724631503",
+    "SUSAP KOAKK2FI12   I      070DECOTK2EA0EY      CF OAK K2      1137011011370060D   + 05100                           0 DS   724641503",
+    "SUSAP KOAKK2FI12   I      080DECOTK2EA0EE  L   HM                     2937T010    + 05100                           0 DS   724651503"
+  ]
+
+  /// MEDIN on the 5C1 RNAV (GPS) RWY 35 transition: a fly-over fix ending the route.
+  static let flyoverEndOfTransition =
+    "SUSAP 5C1 K4FR35   R      060MEDINK4EA0EB   010TF                                 + 04100                           A JS   969752201"
+
+  /// EVRTT on a CYXX STAR, crossed between 14,000 and 16,000 feet.
+  static let betweenAltitudes =
+    "SCANP CYXXCYEMADEE74KONAH 020EVRTTK1EA0E       TF                                 B 1600014000                             054822607"
+
+  /// The first two volumes of the PANC Class C airspace.
+  static let anchorageClassC = [
+    "SCANUCPAAPANC PAC  A00100     H N61103600W149585900                              GND  A04100MANCHORAGE                     145502205",
+    "SCANUCPAAPANC PAC  A00200     G N61103600W149512800                                                                        145511703",
+    "SCANUCPAAPANC PAC  A00300     H N61082800W149512800                                                                        145522205",
+    "SCANUCPAAPANC PAC  A00400     R N61082800W150084600N61103600W14958590000522458                                             145531703",
+    "SCANUCPAAPANC PAC  A00500     GEN61154240W150005120                                                                        145541703",
+    "SCANUCPAAPANC PAC  B00600     R N61065400W149512800N61103600W14958590000521355   00600M04100MANCHORAGE                     145552205",
+    "SCANUCPAAPANC PAC  B00700     H N61082800W150084600                                                                        145562205",
+    "SCANUCPAAPANC PAC  B00800     GEN61082800W149512800                                                                        145572205"
+  ]
+
+  /// Two volumes of the BIRCH MOA, the first with a controlling-agency continuation record.
+  static let birchMOA = [
+    "SCANURPAMBIRCH     A00101L    G N64311700W146093100                              00500A04999MBIRCH MOA                     148101703",
+    "SCANURPAMBIRCH     A00102C                                                                         FAA ANCHORAGE ARTCC     148111703",
+    "SCANURPAMBIRCH     A00200L    G N64245500W145420700                                                                        148121703",
+    "SCANURPAMBIRCH     B09400L    G N64125100W146033100                              00500A04999MBIRCH MOA                     149041812"
+  ]
+
+  static func parse(
+    _ records: [String],
+    errorCallback: ((any Error, Int?) -> Void)? = nil
+  ) throws -> CIFP {
+    try CIFP(data: Data(records.joined(separator: "\r\n").utf8), errorCallback: errorCallback)
+  }
+
+  static func oaklandILS12Approach(transitionId: String?) throws -> Approach {
+    let cifp = try parse([oakland] + oaklandILS12)
+    return try #require(
+      cifp.airports["KOAK"]?.approaches.first { $0.transitionId == transitionId }
+    )
+  }
+
+  static func waypointDescription(_ record: String) throws -> WaypointDescriptionCode? {
+    try CoordinateParser.parseWaypointDescription(Array(record.utf8)[39..<43])
+  }
+
+  static func altitudeConstraint(_ record: String) throws -> AltitudeConstraint? {
+    try CIFPByteParser.parseAltitudeConstraint(Array(record.utf8)[...], lineNumber: 1)
+  }
+}
+
+@Suite
+struct `waypoint description decoding` {
+  @Test
+  func `preserves all four columns`() throws {
+    let codes = try FAARecords.oaklandILS12.map { try FAARecords.waypointDescription($0)?.code }
+    #expect(codes == ["E  A", "EE B", "E  I", "E  F", "GY M", "  M ", "E   ", nil, "EY  ", "EE  "])
+  }
+
+  @Test
+  func `decodes approach roles from column 43`() throws {
+    let records = FAARecords.oaklandILS12
+    let raidr = try #require(try FAARecords.waypointDescription(records[0])),
+      alcatOnTransition = try #require(try FAARecords.waypointDescription(records[1])),
+      alcatOnFinal = try #require(try FAARecords.waypointDescription(records[2])),
+      plaza = try #require(try FAARecords.waypointDescription(records[3])),
+      runway = try #require(try FAARecords.waypointDescription(records[4]))
+
+    #expect(raidr.isIAF)
+    #expect(alcatOnTransition.isIntermediateFix)
+    #expect(alcatOnFinal.isFACF)
+    #expect(!alcatOnFinal.isIAF)
+    #expect(plaza.isFAF)
+    #expect(runway.isMAP)
+    #expect(!runway.isFirstMissedApproachLeg)
+  }
+
+  @Test
+  func `marks the missed approach start separately from the MAP`() throws {
+    let missedStart = try #require(try FAARecords.waypointDescription(FAARecords.oaklandILS12[5]))
+    #expect(missedStart.isFirstMissedApproachLeg)
+    #expect(!missedStart.isMAP)
+  }
+
+  @Test
+  func `distinguishes fly-over fixes from fly-by essential waypoints`() throws {
+    let records = FAARecords.oaklandILS12
+    let plaza = try #require(try FAARecords.waypointDescription(records[3])),
+      runway = try #require(try FAARecords.waypointDescription(records[4])),
+      decot = try #require(try FAARecords.waypointDescription(records[8])),
+      medin = try #require(try FAARecords.waypointDescription(FAARecords.flyoverEndOfTransition))
+
+    #expect(plaza.fixType == .essential)
+    #expect(!plaza.isFlyover)
+    #expect(runway.isFlyover)
+    #expect(decot.isFlyover)
+    #expect(medin.fixStatus == .flyoverEndOfRoute)
+    #expect(medin.isFlyover)
+  }
+
+  @Test
+  func `reports an unrecognized column instead of dropping it`() throws {
+    let record = String(
+      FAARecords.oaklandILS12[3].enumerated().map { $0.offset == 41 ? "Q" : $0.element }
+    )
+    var reportedErrors: [any Error] = []
+
+    let cifp = try FAARecords.parse(
+      [FAARecords.oakland, record],
+      errorCallback: { error, _ in reportedErrors.append(error) }
+    )
+
+    #expect(cifp.airports["KOAK"]?.approaches.isEmpty == true)
+    let error = try #require(reportedErrors.first as? CIFPError)
+    guard case let .parseError(field, value, _) = error else {
+      Issue.record("Expected a parse error")
+      return
+    }
+    #expect(field == "waypoint description")
+    #expect(value == "E QF")
+  }
+
+  @Test
+  func `locates the FAF and MAP on the common route`() throws {
+    let approach = try FAARecords.oaklandILS12Approach(transitionId: nil)
+
+    #expect(approach.finalApproachFix?.fixId == "PLAZA")
+    #expect(approach.missedApproachPoint?.fixId == "RW12")
+    #expect(approach.legs.last?.fixId == "RW12")
+    #expect(approach.missedApproachLegs.first?.sequenceNumber == 40)
+  }
+}
+
+@Suite
+struct `altitude constraint decoding` {
+  @Test
+  func `treats a blank description as an at constraint`() throws {
+    let records = FAARecords.oaklandILS12
+    #expect(try FAARecords.altitudeConstraint(records[0]) == .at(.feet(5000, .msl)))
+    #expect(try FAARecords.altitudeConstraint(records[4]) == .at(.feet(64, .msl)))
+  }
+
+  @Test
+  func `yields no constraint when both altitudes are blank`() throws {
+    #expect(try FAARecords.altitudeConstraint(FAARecords.oaklandILS12[5]) == nil)
+  }
+
+  @Test
+  func `keeps both altitudes of a two-altitude description`() throws {
+    let records = FAARecords.oaklandILS12
+    #expect(try FAARecords.altitudeConstraint(records[1]) == .atOrAbove(.feet(2900, .msl)))
+    #expect(
+      try FAARecords.altitudeConstraint(records[2])
+        == .atOrAboveWithGlideSlopeIntercept(.feet(2900, .msl), intercept: .feet(1800, .msl))
+    )
+    #expect(
+      try FAARecords.altitudeConstraint(records[3])
+        == .atWithGlideSlope(.feet(1800, .msl), glideSlope: .feet(1800, .msl))
+    )
+    #expect(
+      try FAARecords.altitudeConstraint(FAARecords.betweenAltitudes)
+        == .between(lower: .feet(14000, .msl), upper: .feet(16000, .msl))
+    )
+  }
+
+  @Test
+  func `attaches the constraint to the parsed leg`() throws {
+    let approach = try FAARecords.oaklandILS12Approach(transitionId: "RAIDR")
+    #expect(approach.legs.first?.altitudeConstraint == .at(.feet(5000, .msl)))
+  }
+}
+
+@Suite
+struct `RNP decoding` {
+  @Test(arguments: [("031", 0.3), ("302", 0.3), ("101", 1.0), ("010", 1.0), ("152", 0.15)])
+  func `decodes a mantissa and negative exponent`(_ field: String, _ expected: Double) throws {
+    #expect(try CoordinateParser.parseRNP(Array(field.utf8)[...]) == expected)
+  }
+
+  @Test
+  func `returns nil for a blank field`() throws {
+    #expect(try CoordinateParser.parseRNP(Array("   ".utf8)[...]) == nil)
+  }
+
+  @Test(arguments: ["0 1", "A31", "31"])
+  func `throws for a malformed field`(_ field: String) {
+    #expect(throws: CIFPError.self) { try CoordinateParser.parseRNP(Array(field.utf8)[...]) }
+  }
+}
+
+// MARK: - Airspace Decoding Tests
+
+@Suite
+struct `airspace boundary decoding` {
+  private static func anchorageVolumes() throws -> [ControlledAirspace] {
+    try FAARecords.parse(FAARecords.anchorageClassC).controlledAirspaces
+      .sorted { ($0.multipleCode ?? "") < ($1.multipleCode ?? "") }
+  }
+
+  @Test
+  func `keeps each multiple-code volume separate`() throws {
+    let volumes = try Self.anchorageVolumes()
+
+    #expect(volumes.map(\.multipleCode) == ["A", "B"])
+    #expect(volumes.map(\.airspaceClass) == [.classC, .classC])
+    #expect(volumes.map(\.lowerLimit) == [.ground, .feet(600, .msl)])
+    #expect(volumes.map(\.upperLimit) == [.feet(4100, .msl), .feet(4100, .msl)])
+  }
+
+  @Test
+  func `reads the published sequence numbers`() throws {
+    let volumes = try Self.anchorageVolumes()
+    #expect(
+      volumes.map { $0.boundaries.map(\.sequenceNumber) } == [[10, 20, 30, 40, 50], [60, 70, 80]]
+    )
+  }
+
+  @Test
+  func `decodes boundary via and the end of each description`() throws {
+    let boundaries = try #require(try Self.anchorageVolumes().first).boundaries
+
+    #expect(
+      boundaries.map(\.boundaryVia) == [
+        .rhumbLine, .greatCircle, .rhumbLine, .arcClockwise, .greatCircle
+      ]
+    )
+    #expect(boundaries.map(\.isEndOfDescription) == [false, false, false, false, true])
+  }
+
+  @Test
+  func `reads the arc definition of an arc boundary`() throws {
+    let arc = try #require(try Self.anchorageVolumes().first).boundaries[3]
+    let origin = try #require(arc.arcOrigin)
+
+    #expect(abs(origin.latitudeDeg - 61.17667) < 0.0001)
+    #expect(abs(origin.longitudeDeg - -149.98306) < 0.0001)
+    #expect(arc.arcDistanceNM == 5.2)
+    #expect(arc.arcBearingDeg == 245.8)
+  }
+
+  @Test
+  func `separates special use volumes and skips continuation records`() throws {
+    let volumes = try FAARecords.parse(FAARecords.birchMOA).specialUseAirspaces
+      .sorted { ($0.multipleCode ?? "") < ($1.multipleCode ?? "") }
+
+    #expect(volumes.map(\.multipleCode) == ["A", "B"])
+    #expect(volumes.map { $0.boundaries.map(\.sequenceNumber) } == [[10, 20], [940]])
+    #expect(volumes.first?.name == "BIRCH MOA")
+  }
+}

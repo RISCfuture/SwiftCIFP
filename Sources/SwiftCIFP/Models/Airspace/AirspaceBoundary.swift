@@ -5,8 +5,11 @@ public struct AirspaceBoundary: Sendable, Codable, Equatable, Hashable {
   /// Sequence number of this boundary segment.
   public let sequenceNumber: Int
 
-  /// Boundary definition type.
+  /// Path from this boundary point to the next.
   public let boundaryVia: BoundaryVia?
+
+  /// Whether this segment ends its airspace description, returning to the first point.
+  public let isEndOfDescription: Bool
 
   /// Coordinate of the boundary point.
   public let coordinate: Coordinate?
