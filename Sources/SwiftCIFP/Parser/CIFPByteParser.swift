@@ -40,8 +40,8 @@ struct HeaderRecord: Sendable {
 /// Intermediate airway fix record for aggregation.
 struct AirwayFixRecord: Sendable {
   let airwayId: String
-  let routeType: AirwayRouteType?
-  let level: AirwayLevel?
+  let routeType: Airway.RouteType?
+  let level: Airway.Level?
   let fix: AirwayFix
 }
 

@@ -27,6 +27,12 @@
 - Holding pattern leg times are no longer dropped. A time such as `T010` (1.0
   minute) didn't parse as a distance, so cycle 2610's 4,303 timed holds had no
   leg length.
+- Airway records are read from their published columns (ARINC 424 section
+  4.1.6.1). Every airway reported an `undesignated` route type and an
+  `unspecified` level, read from blank columns. Each segment's distance and
+  inbound course were swapped, so `totalDistanceNM` summed courses. The
+  direction restriction was read from the boundary code column, and the
+  boundary code from the waypoint description.
 - RNP decodes as a two-digit mantissa and a negative exponent (ARINC 424 field
   5.211), so `031` is 0.3 NM rather than 3.1 NM. A malformed value now fails the
   record.
@@ -73,6 +79,12 @@
   longer optional.
 - **BREAKING:** `ProcedureLeg.routeDistanceNMOrMinutes` is now `length`, a
   `ProcedureLeg.Length` that is either a `distance` or a holding `time`.
+- **BREAKING:** `AirwayRouteType`, `AirwayLevel`, and `DirectionRestriction`
+  are now `Airway.RouteType`, `Airway.Level`, and
+  `AirwayFix.DirectionRestriction`, with the codes ARINC 424 defines. Blank
+  fields are `nil` rather than `undesignated`, `unspecified`, or `none`, so
+  `Airway.level` is optional. `AggregationErrorReason.missingAirwayMetadata`
+  is replaced by `missingRouteType`.
 - **BREAKING:** `AltitudeConstraint` follows ARINC 424 field 5.29. The `G`,
   `H`, `I`, `J`, `V`, `X`, and `Y` cases each pair the procedure altitude with
   a glide slope, glide slope intercept, or vertical path altitude.

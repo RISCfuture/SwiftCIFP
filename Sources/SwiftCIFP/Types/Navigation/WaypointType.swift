@@ -53,21 +53,3 @@ public enum WaypointUsage: Character, Sendable, Codable, CaseIterable, ByteIniti
   /// Unspecified.
   case unspecified = " "
 }
-
-/// Waypoint name format indicator.
-public enum WaypointNameFormat: Character, Sendable, Codable, CaseIterable, ByteInitializable {
-  /// Five-letter name format.
-  case fiveLetter = "A"
-
-  /// Five-letter name format (alternate).
-  case fiveLetterAlt = "D"
-
-  /// Coordinate-based name.
-  case coordinate = "E"
-
-  /// Airport/runway reference.
-  case airportRunway = "F"
-
-  /// Other format.
-  case other = " "
-}

@@ -42,18 +42,3 @@ public enum NDBClass: String, Sendable, Codable, CaseIterable {
     }
   }
 }
-
-/// NDB additional information codes.
-public enum NDBInfo: Character, Sendable, Codable, CaseIterable, ByteInitializable {
-  /// Automatic weather broadcast.
-  case automaticWeather = "A"
-
-  /// BFO (Beat Frequency Oscillator) required.
-  case bfoRequired = "B"
-
-  /// No voice on frequency.
-  case noVoice = "W"
-
-  /// Unspecified.
-  case none = " "
-}

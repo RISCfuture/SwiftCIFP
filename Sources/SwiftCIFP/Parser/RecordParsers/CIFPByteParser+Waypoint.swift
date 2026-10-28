@@ -66,26 +66,38 @@ extension CIFPByteParser {
     // Fix section code (position 36-38)
     let fixSectionCode = CoordinateParser.parseSectionCode(bytes.slice(36..<38))
 
-    // Boundary code (position 41-42) - for FIR/UIR boundary fixes
-    let boundarySlice = bytes.slice(41..<43)
+    // Boundary code (position 43) - for FIR/UIR boundary fixes
+    let boundarySlice = bytes.slice(43..<44)
     let boundaryCode = boundarySlice.isBlank() ? nil : boundarySlice.toString()
 
-    // Direction restriction (position 43)
-    let dirRestrByte = bytes.count > 43 ? bytes[bytes.startIndex + 43] : ASCII.space
-    let directionRestriction = DirectionRestriction(byte: dirRestrByte)
+    let routeType: Airway.RouteType? = try parseAirwayCode(
+      bytes,
+      at: 44,
+      field: "route type",
+      lineNumber: lineNumber
+    )
+    let level: Airway.Level? = try parseAirwayCode(
+      bytes,
+      at: 45,
+      field: "level",
+      lineNumber: lineNumber
+    )
+    let directionRestriction: AirwayFix.DirectionRestriction? = try parseAirwayCode(
+      bytes,
+      at: 46,
+      field: "direction restriction",
+      lineNumber: lineNumber
+    )
 
     let outboundCourse = CoordinateParser.parseCourse(bytes.slice(70..<74))
-    let inboundCourse = CoordinateParser.parseCourse(bytes.slice(74..<78))
-    let distance = CoordinateParser.parseDistance(bytes.slice(78..<82))
+    let distance = CoordinateParser.parseDistance(bytes.slice(74..<78))
+    let inboundCourse = CoordinateParser.parseCourse(bytes.slice(78..<82))
     let minAlt = try CoordinateParser.parseAltitude(bytes.slice(83..<88), lineNumber: lineNumber)
     let alternateMinAlt = try CoordinateParser.parseAltitude(
       bytes.slice(88..<93),
       lineNumber: lineNumber
     )
     let maxAlt = try CoordinateParser.parseAltitude(bytes.slice(93..<98), lineNumber: lineNumber)
-
-    let routeTypeByte = bytes.count > 19 ? bytes[bytes.startIndex + 19] : ASCII.space
-    let levelByte = bytes.count > 20 ? bytes[bytes.startIndex + 20] : ASCII.space
 
     guard let seqNum else {
       throw CIFPError.missingRequiredField(
@@ -113,10 +125,26 @@ extension CIFPByteParser {
     return .airwayFix(
       AirwayFixRecord(
         airwayId: routeIdent,
-        routeType: AirwayRouteType(byte: routeTypeByte),
-        level: AirwayLevel(byte: levelByte),
+        routeType: routeType,
+        level: level,
         fix: fix
       )
+    )
+  }
+
+  /// Parse a one-character airway code, nil if blank.
+  private static func parseAirwayCode<Code: ByteInitializable>(
+    _ bytes: ArraySlice<UInt8>,
+    at offset: Int,
+    field: String,
+    lineNumber: Int
+  ) throws -> Code? {
+    let byte = bytes.count > offset ? bytes[bytes.startIndex + offset] : ASCII.space
+    return try CoordinateParser.parseCode(
+      byte,
+      field: field,
+      value: String(Character(UnicodeScalar(byte))),
+      lineNumber: lineNumber
     )
   }
 

@@ -2,16 +2,13 @@ public import Foundation
 
 /// Reasons why record aggregation can fail during CIFP building.
 public enum AggregationErrorReason: Sendable {
-  /// The airway is missing its route type or level metadata.
-  case missingAirwayMetadata
-
   /// The MSA record is missing its radius.
   case missingMSARadius
 
   /// The procedure has an invalid route type character.
   case invalidRouteType(Character)
 
-  /// The procedure is missing its route type.
+  /// The procedure or airway is missing its route type.
   case missingRouteType
 
   /// The approach procedure has no final approach route to take its approach type from.
@@ -187,8 +184,6 @@ public enum CIFPError: Error, LocalizedError, Sendable {
       case let .aggregationError(recordType, identifier, reason):
         let reasonString: String =
           switch reason {
-            case .missingAirwayMetadata:
-              String(localized: "missing route type or level", bundle: .module)
             case .missingMSARadius:
               String(localized: "missing radius", bundle: .module)
             case .invalidRouteType(let char):

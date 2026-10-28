@@ -407,7 +407,7 @@ private struct CIFPBuilder {
   var ndbNavaids: [String: [NDBNavaid]] = [:]
   var enrouteWaypoints: [String: EnrouteWaypoint] = [:]
   var airwayFixes: [String: [AirwayFix]] = [:]
-  var airwayMeta: [String: (routeType: AirwayRouteType?, level: AirwayLevel?)] = [:]
+  var airwayMeta: [String: (routeType: Airway.RouteType?, level: Airway.Level?)] = [:]
   var airports: [String: Airport] = [:]
   var runways: [Runway] = []
   var terminalWaypoints: [TerminalWaypoint] = []
@@ -594,15 +594,12 @@ private struct CIFPBuilder {
   private func buildAirways(errorCallback: ((any Error, Int?) -> Void)?) -> [String: Airway] {
     var airways: [String: Airway] = [:]
     for (ident, fixes) in airwayFixes {
-      guard let meta = airwayMeta[ident],
-        let routeType = meta.routeType,
-        let level = meta.level
-      else {
+      guard let meta = airwayMeta[ident], let routeType = meta.routeType else {
         errorCallback?(
           CIFPError.aggregationError(
             recordType: "Airway",
             identifier: ident,
-            reason: .missingAirwayMetadata
+            reason: .missingRouteType
           ),
           nil
         )
@@ -611,7 +608,7 @@ private struct CIFPBuilder {
       airways[ident] = Airway(
         identifier: ident,
         routeType: routeType,
-        level: level,
+        level: meta.level,
         fixes: fixes.sorted(by: { $0.sequenceNumber < $1.sequenceNumber })
       )
     }

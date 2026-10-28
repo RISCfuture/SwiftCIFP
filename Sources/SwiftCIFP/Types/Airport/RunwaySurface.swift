@@ -29,12 +29,3 @@ public enum PublicMilitary: Character, Sendable, Codable, CaseIterable, ByteInit
   /// Private airport.
   case `private` = "P"
 }
-
-/// IFR capability indicator.
-public enum IFRCapability: Character, Sendable, Codable, CaseIterable, ByteInitializable {
-  /// IFR capable.
-  case ifr = "Y"
-
-  /// VFR only.
-  case vfr = "N"
-}

@@ -1096,6 +1096,17 @@ private enum FAARecords {
   static let betweenAltitudes =
     "SCANP CYXXCYEMADEE74KONAH 020EVRTTK1EA0E       TF                                 B 1600014000                             054822607"
 
+  /// The first three fixes of V25.
+  static let victor25 = [
+    "SUSAER       V25         0100MZB  K2D 0V    OL                        30400134     03000     17500                         668992405",
+    "SUSAER       V25         0110REDINK2EA0E    OL                        304002673033 06000     17500                         669002405",
+    "SUSAER       V25         0120PACIFK2EA0E    OL                        304001463033 03000     17500                         669012405"
+  ]
+
+  /// A fix on A342 on the Pacific boundary, with no published level.
+  static let amber342Boundary =
+    "SCANER       A342        0120PINSOP EA0E   PO                         07551739     18000     60000                         031532605"
+
   /// The first two volumes of the PANC Class C airspace.
   static let anchorageClassC = [
     "SCANUCPAAPANC PAC  A00100     H N61103600W149585900                              GND  A04100MANCHORAGE                     145502205",
@@ -1376,6 +1387,33 @@ struct `approach identification` {
     #expect(approaches.map(\.approachType) == [.rnav, .rnav])
     #expect(approaches.first?.legs.map(\.sequenceNumber) == [10, 20, 30])
     #expect(approaches.first?.missedApproachLegs.map(\.sequenceNumber) == [40, 50, 60])
+  }
+}
+
+// MARK: - Airway Decoding Tests
+
+@Suite
+struct `airway decoding` {
+  @Test
+  func `reads the route type and level`() throws {
+    let airway = try #require(try FAARecords.parse(FAARecords.victor25).airways["V25"])
+    #expect(airway.routeType == .officiallyDesignated)
+    #expect(airway.level == .low)
+  }
+
+  @Test
+  func `reads each segment's distance and inbound course`() throws {
+    let fixes = try #require(try FAARecords.parse(FAARecords.victor25).airways["V25"]).fixes
+    #expect(fixes.map(\.distanceNM) == [13.4, 26.7, 14.6])
+    #expect(fixes.map(\.inboundCourseDeg) == [nil, 303.3, 303.3])
+  }
+
+  @Test
+  func `reads the boundary code and tolerates a blank level`() throws {
+    let airway = try #require(try FAARecords.parse([FAARecords.amber342Boundary]).airways["A342"])
+    #expect(airway.level == nil)
+    #expect(airway.fixes.first?.boundaryCode == "P")
+    #expect(airway.fixes.first?.directionRestriction == nil)
   }
 }
 

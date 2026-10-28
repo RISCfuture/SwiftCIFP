@@ -1,50 +1,5 @@
 public import Foundation
 
-/// Airway route type.
-public enum AirwayRouteType: Character, Sendable, Codable, CaseIterable, ByteInitializable {
-  /// Conventional airway (VOR-based).
-  case conventional = "O"
-
-  /// RNAV airway.
-  case rnav = "R"
-
-  /// Direct route.
-  case direct = "D"
-
-  /// Helicopter route.
-  case helicopter = "H"
-
-  /// Undesignated.
-  case undesignated = " "
-}
-
-/// Airway altitude level classification.
-public enum AirwayLevel: Character, Sendable, Codable, CaseIterable, ByteInitializable {
-  /// High altitude (above FL180 in US).
-  case high = "H"
-
-  /// Low altitude (below FL180 in US).
-  case low = "L"
-
-  /// Both high and low altitude.
-  case both = "B"
-
-  /// Unspecified.
-  case unspecified = " "
-}
-
-/// Direction restriction on an airway segment.
-public enum DirectionRestriction: Character, Sendable, Codable, CaseIterable, ByteInitializable {
-  /// Forward direction only.
-  case forward = "F"
-
-  /// Backward direction only.
-  case backward = "B"
-
-  /// No restriction (bidirectional).
-  case none = " "
-}
-
 /// A fix/waypoint along an airway.
 public struct AirwayFix: Sendable, Codable, Equatable, Hashable {
 
@@ -68,7 +23,7 @@ public struct AirwayFix: Sendable, Codable, Equatable, Hashable {
   /// Boundary code (for FIR/UIR boundaries).
   public let boundaryCode: String?
 
-  /// Direction restriction for this segment.
+  /// The direction this segment may be flown in, or nil if either.
   public let directionRestriction: DirectionRestriction?
 
   /// Outbound magnetic course from this fix in degrees.
@@ -141,6 +96,21 @@ public struct AirwayFix: Sendable, Codable, Equatable, Hashable {
   }
 }
 
+// MARK: - Direction Restriction
+
+extension AirwayFix {
+  /// A one-way restriction on an airway segment (ARINC 424 field 5.115).
+  public enum DirectionRestriction: Character, Sendable, Codable, CaseIterable,
+    ByteInitializable
+  {
+    /// One way, in the direction the airway is coded.
+    case forward = "F"
+
+    /// One way, opposite the direction the airway is coded.
+    case backward = "B"
+  }
+}
+
 // MARK: - AirwayFix Measurement Extensions
 
 extension AirwayFix {
@@ -199,10 +169,10 @@ public struct Airway: Sendable, Codable, AirwayLinkable {
   public let identifier: String
 
   /// Route type (conventional, RNAV, etc.).
-  public let routeType: AirwayRouteType
+  public let routeType: RouteType
 
-  /// Altitude level (high, low, or both).
-  public let level: AirwayLevel
+  /// Altitude structure (high, low, or both), if published.
+  public let level: Level?
 
   /// Sequence of fixes along the airway.
   public internal(set) var fixes: [AirwayFix]
@@ -220,8 +190,8 @@ public struct Airway: Sendable, Codable, AirwayLinkable {
   /// Creates an Airway record.
   init(
     identifier: String,
-    routeType: AirwayRouteType,
-    level: AirwayLevel,
+    routeType: RouteType,
+    level: Level?,
     fixes: [AirwayFix]
   ) {
     self.identifier = identifier
@@ -235,6 +205,46 @@ public struct Airway: Sendable, Codable, AirwayLinkable {
   private enum CodingKeys: String, CodingKey {
     case identifier, routeType, level, fixes
     // Note: 'data' is excluded
+  }
+}
+
+// MARK: - Route Type and Level
+
+extension Airway {
+  /// The kind of airway (ARINC 424 field 5.7).
+  public enum RouteType: Character, Sendable, Codable, CaseIterable, ByteInitializable {
+    /// Airline airway (tailored data).
+    case airline = "A"
+
+    /// Control airway.
+    case control = "C"
+
+    /// Direct route.
+    case direct = "D"
+
+    /// Helicopter airway.
+    case helicopter = "H"
+
+    /// Officially designated airway, other than an RNAV or helicopter airway.
+    case officiallyDesignated = "O"
+
+    /// RNAV airway.
+    case rnav = "R"
+
+    /// Undesignated ATS route.
+    case undesignatedATSRoute = "S"
+  }
+
+  /// The altitude structure an airway belongs to (ARINC 424 field 5.19).
+  public enum Level: Character, Sendable, Codable, CaseIterable, ByteInitializable {
+    /// All altitudes.
+    case all = "B"
+
+    /// High-level airway.
+    case high = "H"
+
+    /// Low-level airway.
+    case low = "L"
   }
 }
 

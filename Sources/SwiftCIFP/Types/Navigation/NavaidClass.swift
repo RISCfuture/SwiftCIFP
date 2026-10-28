@@ -116,15 +116,3 @@ public enum NavaidUsageClass: Character, Sendable, Codable, CaseIterable, ByteIn
   /// Both high and low altitude.
   case both = "B"
 }
-
-/// DME service volume type.
-public enum DMEType: Character, Sendable, Codable, CaseIterable, ByteInitializable {
-  /// Standard DME.
-  case standard = "D"
-
-  /// Precision DME (DME/P).
-  case precision = "P"
-
-  /// No DME.
-  case none = " "
-}
