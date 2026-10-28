@@ -164,7 +164,10 @@ extension CIFPByteParser {
     let icaoRegion = bytes.slice(10..<12).toString()
     let runwayIdent = bytes.slice(13..<18).toString()
     let length = bytes.slice(22..<27).parseInt()
-    let bearing = CoordinateParser.parseCourse(bytes.slice(27..<31))
+    let bearing = try CoordinateParser.parseReferencedCourse(
+      bytes.slice(27..<31),
+      lineNumber: lineNumber
+    )
     let coord = CoordinateParser.parseCoordinate(bytes.slice(32..<51))
     let gradient = CoordinateParser.parseGradient(bytes.slice(51..<56))
 
@@ -244,7 +247,7 @@ extension CIFPByteParser {
         icaoRegion: icaoRegion,
         runwayId: runwayIdent,
         lengthFt: length,
-        magneticBearingDeg: bearing,
+        bearing: bearing,
         thresholdCoordinate: coord,
         gradientPct: gradient,
         ellipsoidHeightFt: ellipsoidHeightFt,
@@ -270,7 +273,10 @@ extension CIFPByteParser {
     let frequency = CoordinateParser.parseVHFFrequency(bytes.slice(22..<27))
     let runwayIdent = bytes.slice(27..<32).toString()
     let locCoord = CoordinateParser.parseCoordinate(bytes.slice(32..<51))
-    let locBearing = CoordinateParser.parseCourse(bytes.slice(51..<55))
+    let locBearing = try CoordinateParser.parseReferencedCourse(
+      bytes.slice(51..<55),
+      lineNumber: lineNumber
+    )
     let gsCoord = CoordinateParser.parseCoordinate(bytes.slice(55..<74))
 
     // Glide slope angle (position 83-87, in hundredths of degrees)
@@ -322,7 +328,7 @@ extension CIFPByteParser {
         frequencyMHz: frequency,
         runwayId: runwayIdent,
         coordinate: locCoord,
-        bearingDeg: locBearing,
+        bearing: locBearing,
         slopeCoordinate: gsCoord,
         slopeAngleDeg: slopeAngleDeg,
         widthDeg: widthDeg,

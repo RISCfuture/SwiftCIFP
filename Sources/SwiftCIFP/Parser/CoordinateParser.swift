@@ -272,6 +272,31 @@ enum CoordinateParser {
     return Double(raw) / 10.0
   }
 
+  /// Parse a course or bearing that may be magnetic or true.
+  ///
+  /// - Parameters:
+  ///   - bytes: 4-byte course field: tenths of a degree magnetic ("2937" = 293.7°), or whole
+  ///     degrees true followed by "T" ("194T" = 194° true).
+  ///   - lineNumber: Line number for error reporting.
+  /// - Returns: The course, or nil if blank.
+  /// - Throws: `CIFPError.parseError` if the field is neither form.
+  static func parseReferencedCourse<T: RandomAccessCollection>(
+    _ bytes: T,
+    lineNumber: Int = 0
+  ) throws -> Course? where T.Element == UInt8, T.Index == Int {
+    guard !bytes.isBlank() else { return nil }
+
+    let isTrue = bytes.last == ASCII.T
+    let digits = bytes.slice(0..<(isTrue ? 3 : 4))
+    guard bytes.count == 4, digits.allSatisfy(ASCII.isDigit), let value = digits.parseUInt()
+    else {
+      throw CIFPError.parseError(field: "course", value: bytes.toRawString(), line: lineNumber)
+    }
+    return isTrue
+      ? Course(degrees: Double(value), reference: .trueNorth)
+      : Course(degrees: Double(value) / 10, reference: .magnetic)
+  }
+
   /// Parse a distance value (nm × 10).
   ///
   /// - Parameter bytes: 4-byte distance field.

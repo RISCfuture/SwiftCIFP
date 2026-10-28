@@ -11,7 +11,7 @@
 
 - ``lengthFt``
 - ``widthFt``
-- ``magneticBearingDeg``
+- ``bearing``
 - ``gradientPct``
 - ``stopwayFt``
 
@@ -37,7 +37,6 @@
 
 - ``length``
 - ``width``
-- ``magneticBearing``
 - ``gradient``
 - ``thresholdElevation``
 - ``displacedThreshold``

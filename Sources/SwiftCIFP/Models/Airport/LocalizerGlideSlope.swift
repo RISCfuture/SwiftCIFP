@@ -31,8 +31,8 @@ public struct LocalizerGlideSlope: Sendable, Codable, CIFPDataLinkable {
   /// Localizer antenna coordinate.
   public let coordinate: Coordinate
 
-  /// Localizer bearing in degrees magnetic.
-  public let bearingDeg: Double
+  /// Localizer course, magnetic or true.
+  public let bearing: Course
 
   /// Glide slope antenna coordinate.
   public let slopeCoordinate: Coordinate?
@@ -63,7 +63,7 @@ public struct LocalizerGlideSlope: Sendable, Codable, CIFPDataLinkable {
     frequencyMHz: Double,
     runwayId: String,
     coordinate: Coordinate,
-    bearingDeg: Double,
+    bearing: Course,
     slopeCoordinate: Coordinate?,
     slopeAngleDeg: Double?,
     widthDeg: Double?,
@@ -77,7 +77,7 @@ public struct LocalizerGlideSlope: Sendable, Codable, CIFPDataLinkable {
     self.frequencyMHz = frequencyMHz
     self.runwayId = runwayId
     self.coordinate = coordinate
-    self.bearingDeg = bearingDeg
+    self.bearing = bearing
     self.slopeCoordinate = slopeCoordinate
     self.slopeAngleDeg = slopeAngleDeg
     self.widthDeg = widthDeg
@@ -89,7 +89,7 @@ public struct LocalizerGlideSlope: Sendable, Codable, CIFPDataLinkable {
 
   private enum CodingKeys: String, CodingKey {
     case airportId, icaoRegion, localizerId, ilsCategory
-    case frequencyMHz, runwayId, coordinate, bearingDeg
+    case frequencyMHz, runwayId, coordinate, bearing
     case slopeCoordinate, slopeAngleDeg, widthDeg
     case stationDeclinationDeg, thresholdCrossingHeightFt
     // Note: 'data' is excluded to avoid encoding the weak reference
@@ -124,11 +124,6 @@ extension LocalizerGlideSlope {
   /// Localizer frequency as a Measurement.
   public var frequency: Measurement<UnitFrequency> {
     .init(value: frequencyMHz, unit: .megahertz)
-  }
-
-  /// Localizer bearing as a Measurement.
-  public var bearing: Measurement<UnitAngle> {
-    .init(value: bearingDeg, unit: .degrees)
   }
 
   /// Glide slope as a gradient measurement.

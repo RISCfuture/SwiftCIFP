@@ -26,14 +26,14 @@ public struct AirwayFix: Sendable, Codable, Equatable, Hashable {
   /// The direction this segment may be flown in, or nil if either.
   public let directionRestriction: DirectionRestriction?
 
-  /// Outbound magnetic course from this fix in degrees.
-  public let outboundCourseDeg: Double?
+  /// Outbound course from this fix, magnetic or true.
+  public let outboundCourse: Course?
 
   /// Distance to next fix in nautical miles.
   public let distanceNM: Double?
 
-  /// Inbound magnetic course to this fix in degrees.
-  public let inboundCourseDeg: Double?
+  /// Inbound course to this fix, magnetic or true.
+  public let inboundCourse: Course?
 
   /// Minimum altitude for this segment.
   public let minimumAltitude: Altitude?
@@ -52,9 +52,9 @@ public struct AirwayFix: Sendable, Codable, Equatable, Hashable {
     fixSectionCode: SectionCode?,
     boundaryCode: String?,
     directionRestriction: DirectionRestriction?,
-    outboundCourseDeg: Double?,
+    outboundCourse: Course?,
     distanceNM: Double?,
-    inboundCourseDeg: Double?,
+    inboundCourse: Course?,
     minimumAltitude: Altitude?,
     alternateMinimumAltitude: Altitude?,
     maximumAltitude: Altitude?
@@ -65,9 +65,9 @@ public struct AirwayFix: Sendable, Codable, Equatable, Hashable {
     self.fixSectionCode = fixSectionCode
     self.boundaryCode = boundaryCode
     self.directionRestriction = directionRestriction
-    self.outboundCourseDeg = outboundCourseDeg
+    self.outboundCourse = outboundCourse
     self.distanceNM = distanceNM
-    self.inboundCourseDeg = inboundCourseDeg
+    self.inboundCourse = inboundCourse
     self.minimumAltitude = minimumAltitude
     self.alternateMinimumAltitude = alternateMinimumAltitude
     self.maximumAltitude = maximumAltitude
@@ -89,8 +89,8 @@ public struct AirwayFix: Sendable, Codable, Equatable, Hashable {
 
   private enum CodingKeys: String, CodingKey {
     case sequenceNumber, fixId, fixICAO, fixSectionCode
-    case boundaryCode, directionRestriction, outboundCourseDeg
-    case distanceNM, inboundCourseDeg, minimumAltitude
+    case boundaryCode, directionRestriction, outboundCourse
+    case distanceNM, inboundCourse, minimumAltitude
     case alternateMinimumAltitude, maximumAltitude
     // Note: 'findFix' is excluded
   }
@@ -114,19 +114,9 @@ extension AirwayFix {
 // MARK: - AirwayFix Measurement Extensions
 
 extension AirwayFix {
-  /// Outbound magnetic course as a Measurement.
-  public var outboundCourse: Measurement<UnitAngle>? {
-    outboundCourseDeg.map { .init(value: $0, unit: .degrees) }
-  }
-
   /// Distance to next fix as a Measurement.
   public var distance: Measurement<UnitLength>? {
     distanceNM.map { .init(value: $0, unit: .nauticalMiles) }
-  }
-
-  /// Inbound magnetic course as a Measurement.
-  public var inboundCourse: Measurement<UnitAngle>? {
-    inboundCourseDeg.map { .init(value: $0, unit: .degrees) }
   }
 }
 

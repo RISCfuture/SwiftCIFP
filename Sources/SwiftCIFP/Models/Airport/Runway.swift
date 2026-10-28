@@ -22,8 +22,8 @@ public struct Runway: Sendable, Codable, CIFPDataLinkable {
   /// Runway length in feet.
   public let lengthFt: Int
 
-  /// Runway magnetic bearing in degrees.
-  public let magneticBearingDeg: Double?
+  /// Runway bearing, magnetic or true.
+  public let bearing: Course?
 
   /// Runway threshold coordinate.
   public let thresholdCoordinate: Coordinate
@@ -61,7 +61,7 @@ public struct Runway: Sendable, Codable, CIFPDataLinkable {
     icaoRegion: String,
     runwayId: String,
     lengthFt: Int,
-    magneticBearingDeg: Double?,
+    bearing: Course?,
     thresholdCoordinate: Coordinate,
     gradientPct: Double?,
     ellipsoidHeightFt: Int?,
@@ -77,7 +77,7 @@ public struct Runway: Sendable, Codable, CIFPDataLinkable {
     self.icaoRegion = icaoRegion
     self.name = runwayId
     self.lengthFt = lengthFt
-    self.magneticBearingDeg = magneticBearingDeg
+    self.bearing = bearing
     self.thresholdCoordinate = thresholdCoordinate
     self.gradientPct = gradientPct
     self.ellipsoidHeightFt = ellipsoidHeightFt
@@ -94,7 +94,7 @@ public struct Runway: Sendable, Codable, CIFPDataLinkable {
 
   private enum CodingKeys: String, CodingKey {
     case airportId, icaoRegion, name, lengthFt
-    case magneticBearingDeg, thresholdCoordinate, gradientPct
+    case bearing, thresholdCoordinate, gradientPct
     case ellipsoidHeightFt, thresholdElevationFt, displacedThresholdFt
     case thresholdCrossingHeightFt, widthFt, localizerId
     case ilsCategory, stopwayFt
@@ -130,11 +130,6 @@ extension Runway {
   /// Runway length as a Measurement.
   public var length: Measurement<UnitLength> {
     .init(value: Double(lengthFt), unit: .feet)
-  }
-
-  /// Runway magnetic bearing as a Measurement.
-  public var magneticBearing: Measurement<UnitAngle>? {
-    magneticBearingDeg.map { .init(value: $0, unit: .degrees) }
   }
 
   /// Runway gradient as a Measurement.

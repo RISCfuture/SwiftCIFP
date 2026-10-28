@@ -18,7 +18,7 @@
 
 - ``turnDirection``
 - ``isTurnDirectionValid``
-- ``magneticCourseDeg``
+- ``course``
 - ``arcRadiusNM``
 
 ### Navaid Reference
@@ -62,7 +62,6 @@
 - ``arcRadius``
 - ``theta``
 - ``rho``
-- ``magneticCourse``
 - ``transitionAltitude``
 - ``speedLimit``
 - ``verticalAngle``

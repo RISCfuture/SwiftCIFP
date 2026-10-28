@@ -101,9 +101,15 @@ extension CIFPByteParser {
       lineNumber: lineNumber
     )
 
-    let outboundCourse = CoordinateParser.parseCourse(bytes.slice(70..<74))
+    let outboundCourse = try CoordinateParser.parseReferencedCourse(
+      bytes.slice(70..<74),
+      lineNumber: lineNumber
+    )
     let distance = CoordinateParser.parseDistance(bytes.slice(74..<78))
-    let inboundCourse = CoordinateParser.parseCourse(bytes.slice(78..<82))
+    let inboundCourse = try CoordinateParser.parseReferencedCourse(
+      bytes.slice(78..<82),
+      lineNumber: lineNumber
+    )
     let minAlt = try CoordinateParser.parseAltitude(bytes.slice(83..<88), lineNumber: lineNumber)
     let alternateMinAlt = try CoordinateParser.parseAltitude(
       bytes.slice(88..<93),
@@ -126,9 +132,9 @@ extension CIFPByteParser {
       fixSectionCode: fixSectionCode,
       boundaryCode: boundaryCode,
       directionRestriction: directionRestriction,
-      outboundCourseDeg: outboundCourse,
+      outboundCourse: outboundCourse,
       distanceNM: distance,
-      inboundCourseDeg: inboundCourse,
+      inboundCourse: inboundCourse,
       minimumAltitude: minAlt,
       alternateMinimumAltitude: alternateMinAlt,
       maximumAltitude: maxAlt

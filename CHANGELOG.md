@@ -64,6 +64,9 @@
   codes are kept apart, which recovers 317 MSAs. Heliport MSAs, which were read
   from the wrong columns, now use the same layout, and `HeliportMSA` gains
   `multipleCode`.
+- Courses and bearings charted in degrees true parse as true. ARINC 424 codes
+  them as whole degrees followed by `T` (`194T`), which was read as 19.4°
+  magnetic.
 - RNP decodes as a two-digit mantissa and a negative exponent (ARINC 424 field
   5.211), so `031` is 0.3 NM rather than 3.1 NM. A malformed value now fails the
   record.
@@ -157,6 +160,12 @@
   `Approach.LevelsOfService`. `SBASServiceLevel` is now
   `Approach.SBASServiceLevel`, and `RequiredNavPerformance` and
   `LateralNavCapability` are gone.
+- **BREAKING:** Courses and bearings are a `Course`, which carries its degrees
+  and whether they are magnetic or true. `ProcedureLeg.magneticCourseDeg` and
+  `magneticCourse` are now `course`; `AirwayFix.outboundCourseDeg` and
+  `inboundCourseDeg` are now `outboundCourse` and `inboundCourse`;
+  `Runway.magneticBearingDeg` and `magneticBearing` are now `bearing`; and
+  `LocalizerGlideSlope.bearingDeg` is now `bearing`.
 - **BREAKING:** `AltitudeConstraint` follows ARINC 424 field 5.29. The `G`,
   `H`, `I`, `J`, `V`, `X`, and `Y` cases each pair the procedure altitude with
   a glide slope, glide slope intercept, or vertical path altitude.

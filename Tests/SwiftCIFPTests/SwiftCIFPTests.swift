@@ -1369,6 +1369,32 @@ struct `leg length decoding` {
 }
 
 @Suite
+struct `course decoding` {
+  @Test
+  func `reads a magnetic course in tenths of a degree`() throws {
+    #expect(
+      try CoordinateParser.parseReferencedCourse(Array("2937".utf8)[...])
+        == Course(degrees: 293.7, reference: .magnetic)
+    )
+  }
+
+  @Test
+  func `reads a true course in whole degrees`() throws {
+    #expect(
+      try CoordinateParser.parseReferencedCourse(Array("194T".utf8)[...])
+        == Course(degrees: 194, reference: .trueNorth)
+    )
+  }
+
+  @Test(arguments: ["19T4", "29 7", "T194"])
+  func `throws for a malformed field`(_ field: String) {
+    #expect(throws: CIFPError.self) {
+      try CoordinateParser.parseReferencedCourse(Array(field.utf8)[...])
+    }
+  }
+}
+
+@Suite
 struct `RNP decoding` {
   @Test(arguments: [("031", 0.3), ("302", 0.3), ("101", 1.0), ("010", 1.0), ("152", 0.15)])
   func `decodes a mantissa and negative exponent`(_ field: String, _ expected: Double) throws {
@@ -1584,7 +1610,7 @@ struct `airway decoding` {
   func `reads each segment's distance and inbound course`() throws {
     let fixes = try #require(try FAARecords.parse(FAARecords.victor25).airways["V25"]).fixes
     #expect(fixes.map(\.distanceNM) == [13.4, 26.7, 14.6])
-    #expect(fixes.map(\.inboundCourseDeg) == [nil, 303.3, 303.3])
+    #expect(fixes.map(\.inboundCourse?.degrees) == [nil, 303.3, 303.3])
   }
 
   @Test

@@ -56,8 +56,8 @@ public struct ProcedureLeg: Sendable, Codable, Equatable, Hashable {
   /// Rho - distance to fix from navaid in nautical miles.
   public let rhoNM: Double?
 
-  /// Outbound magnetic course in degrees.
-  public let magneticCourseDeg: Double?
+  /// Outbound course, magnetic or true.
+  public let course: Course?
 
   /// The leg's distance, or a holding pattern's leg length as a distance or a time.
   public let length: Length?
@@ -106,7 +106,7 @@ public struct ProcedureLeg: Sendable, Codable, Equatable, Hashable {
     arcRadiusNM: Double?,
     thetaDeg: Double?,
     rhoNM: Double?,
-    magneticCourseDeg: Double?,
+    course: Course?,
     length: Length?,
     altitudeConstraint: AltitudeConstraint?,
     transitionAltitudeFt: Int?,
@@ -129,7 +129,7 @@ public struct ProcedureLeg: Sendable, Codable, Equatable, Hashable {
     self.arcRadiusNM = arcRadiusNM
     self.thetaDeg = thetaDeg
     self.rhoNM = rhoNM
-    self.magneticCourseDeg = magneticCourseDeg
+    self.course = course
     self.length = length
     self.altitudeConstraint = altitudeConstraint
     self.transitionAltitudeFt = transitionAltitudeFt
@@ -158,7 +158,7 @@ public struct ProcedureLeg: Sendable, Codable, Equatable, Hashable {
     case sequenceNumber, fixId, fixICAO, fixSectionCode
     case waypointDescription, turnDirection, rnpNM, pathTerminator
     case isTurnDirectionValid, recommendedNavaidId, recommendedNavaidICAO
-    case arcRadiusNM, thetaDeg, rhoNM, magneticCourseDeg
+    case arcRadiusNM, thetaDeg, rhoNM, course
     case length, altitudeConstraint
     case transitionAltitudeFt, speedConstraint
     case verticalAngleDeg, centerFixId, centerFixICAO
@@ -201,11 +201,6 @@ extension ProcedureLeg {
   /// Rho (distance to fix from navaid) as a Measurement.
   public var rho: Measurement<UnitLength>? {
     rhoNM.map { .init(value: $0, unit: .nauticalMiles) }
-  }
-
-  /// Outbound magnetic course as a Measurement.
-  public var magneticCourse: Measurement<UnitAngle>? {
-    magneticCourseDeg.map { .init(value: $0, unit: .degrees) }
   }
 
   /// Transition altitude as a Measurement.

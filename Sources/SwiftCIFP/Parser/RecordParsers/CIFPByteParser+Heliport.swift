@@ -131,7 +131,10 @@ extension CIFPByteParser {
     let rho = CoordinateParser.parseDistance(bytes.slice(66..<70))
 
     // Course and length
-    let course = CoordinateParser.parseCourse(bytes.slice(70..<74))
+    let course = try CoordinateParser.parseReferencedCourse(
+      bytes.slice(70..<74),
+      lineNumber: lineNumber
+    )
     let length = try CoordinateParser.parseLegLength(bytes.slice(74..<78), lineNumber: lineNumber)
 
     let altitudeConstraint = try parseAltitudeConstraint(bytes, lineNumber: lineNumber)
@@ -174,7 +177,7 @@ extension CIFPByteParser {
       arcRadiusNM: arcRadius,
       thetaDeg: theta,
       rhoNM: rho,
-      magneticCourseDeg: course,
+      course: course,
       length: length,
       altitudeConstraint: altitudeConstraint,
       transitionAltitudeFt: transAlt,
