@@ -9,6 +9,7 @@
 - ``approachType``
 - ``routeType``
 - ``transitionId``
+- ``runwayId``
 - ``multipleIndicator``
 
 ### Procedure Legs

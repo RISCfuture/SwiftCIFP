@@ -17,8 +17,11 @@ public struct HeliportApproach: Sendable, Codable, ProcedureLinkable {
   /// Approach identifier.
   public let identifier: String
 
-  /// Approach type.
-  public let approachType: ApproachType?
+  /// Approach type, shared by the procedure's transitions and its final approach route.
+  public let approachType: ApproachType
+
+  /// Whether this route is a transition or the final approach.
+  public let routeType: Approach.RouteType
 
   /// Transition identifier.
   public let transitionId: String?
@@ -34,7 +37,8 @@ public struct HeliportApproach: Sendable, Codable, ProcedureLinkable {
     parentId: String,
     icaoRegion: String,
     identifier: String,
-    approachType: ApproachType?,
+    approachType: ApproachType,
+    routeType: Approach.RouteType,
     transitionId: String?,
     legs: [ProcedureLeg],
     missedApproachLegs: [ProcedureLeg]
@@ -43,6 +47,7 @@ public struct HeliportApproach: Sendable, Codable, ProcedureLinkable {
     self.icaoRegion = icaoRegion
     self.identifier = identifier
     self.approachType = approachType
+    self.routeType = routeType
     self.transitionId = transitionId
     self.legs = legs
     self.missedApproachLegs = missedApproachLegs
@@ -52,7 +57,7 @@ public struct HeliportApproach: Sendable, Codable, ProcedureLinkable {
 
   private enum CodingKeys: String, CodingKey {
     case parentId, icaoRegion, identifier, approachType
-    case transitionId, legs, missedApproachLegs
+    case routeType, transitionId, legs, missedApproachLegs
     // Note: 'data' is excluded
   }
 }

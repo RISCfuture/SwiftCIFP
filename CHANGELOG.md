@@ -36,6 +36,15 @@
   hide.
 - Airspace and heliport approach continuation records are no longer decoded as
   extra boundaries or legs.
+- An approach transition reports the approach type of the procedure it serves.
+  The type was taken from each route's own route type, so every transition
+  reported `transition` rather than, say, `ils`. `Approach.routeType`,
+  `runwayId`, and `multipleIndicator`, which were always `nil`, now say whether
+  the route is a transition or the final approach and name the runway and
+  multiple indicator from the approach identifier.
+- Heliport approaches are built per transition, like airport approaches, with
+  their approach type, transition, and missed approach legs. Every route of a
+  procedure used to be merged into one leg list ordered by sequence number.
 
 ### Changed
 
@@ -47,6 +56,13 @@
   each column's published codes, and `FixType.transition` is now
   `transitionEssential`. The type adds `code`, `isIAF`, `isIntermediateFix`,
   `isFACF`, and `isFirstMissedApproachLeg`.
+- **BREAKING:** `Approach.routeType` is a non-optional `Approach.RouteType`
+  (`transition`, `finalApproach`, or `missedApproach`), replacing the
+  `ApproachRouteType` enum, whose cases had no counterpart in the data.
+  `ApproachType` loses `transition` and `missedApproach`, which are route types
+  rather than approach types, and `AggregationErrorReason.invalidApproachType`
+  is gone. `HeliportApproach` gains `routeType`, and its `approachType` is no
+  longer optional.
 - **BREAKING:** `AltitudeConstraint` follows ARINC 424 field 5.29. The `G`,
   `H`, `I`, `J`, `V`, `X`, and `Y` cases each pair the procedure altitude with
   a glide slope, glide slope intercept, or vertical path altitude.

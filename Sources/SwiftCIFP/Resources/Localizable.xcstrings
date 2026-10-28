@@ -55,9 +55,6 @@
     "File encoding was invalid." : {
 
     },
-    "invalid approach type “%@”" : {
-
-    },
     "invalid route type “%@”" : {
 
     },
@@ -134,9 +131,6 @@
     "Longitude direction “%@” is invalid. Expected “E” or “W”." : {
 
     },
-    "missing approach type" : {
-
-    },
     "missing radius" : {
 
     },
@@ -150,6 +144,9 @@
 
     },
     "no boundary records" : {
+
+    },
+    "no final approach route" : {
 
     },
     "no leg records" : {

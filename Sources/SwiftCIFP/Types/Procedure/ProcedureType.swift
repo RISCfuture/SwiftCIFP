@@ -1,10 +1,7 @@
 import Foundation
 
-/// Approach type/route type qualifier.
+/// Approach type: the navigation an approach's final approach route is flown with.
 public enum ApproachType: Character, Sendable, Codable, CaseIterable, ByteInitializable {
-  /// Approach transition.
-  case transition = "A"
-
   /// Localizer back course.
   case localizerBackcourse = "B"
 
@@ -65,12 +62,8 @@ public enum ApproachType: Character, Sendable, Codable, CaseIterable, ByteInitia
   /// MLS Type B/C.
   case mlsTypeBC = "Y"
 
-  /// Missed approach.
-  case missedApproach = "Z"
-
   public var description: String {
     switch self {
-      case .transition: "Transition"
       case .localizerBackcourse: "LOC BC"
       case .vorDME: "VOR/DME"
       case .fms: "FMS"
@@ -91,7 +84,6 @@ public enum ApproachType: Character, Sendable, Codable, CaseIterable, ByteInitia
       case .mlsTypeA: "MLS-A"
       case .lda: "LDA"
       case .mlsTypeBC: "MLS-BC"
-      case .missedApproach: "Missed Approach"
     }
   }
 }
@@ -193,43 +185,4 @@ public enum STARRouteType: Character, Sendable, Codable, CaseIterable, ByteIniti
         false
     }
   }
-}
-
-/// Approach route type qualifier.
-public enum ApproachRouteType: Character, Sendable, Codable, CaseIterable, ByteInitializable {
-  /// Approach transition.
-  case transition = "A"
-
-  /// Primary missed approach.
-  case primaryMissed = "B"
-
-  /// Secondary missed approach.
-  case secondaryMissed = "E"
-
-  /// Final approach.
-  case finalApproach = "F"
-
-  /// Circle to land.
-  case circleToLand = "C"
-
-  /// Straight in.
-  case straightIn = "S"
-
-  /// Approach with procedure turn.
-  case procedureTurn = "P"
-
-  /// DME arc.
-  case dmeArc = "D"
-
-  /// Hold in lieu of procedure turn.
-  case holdInLieu = "H"
-
-  /// Vectors.
-  case vectors = "V"
-
-  /// No procedure turn.
-  case noProcedureTurn = "N"
-
-  /// Initial approach fix.
-  case initialApproachFix = "I"
 }

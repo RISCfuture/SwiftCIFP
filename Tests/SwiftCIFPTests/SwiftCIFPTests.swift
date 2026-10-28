@@ -1066,6 +1066,24 @@ private enum FAARecords {
     "SUSAP KOAKK2FI12   I      080DECOTK2EA0EE  L   HM                     2937T010    + 05100                           0 DS   724651503"
   ]
 
+  static let southampton =
+    "SUSAH 87N K6A87NH1   0     NARY N40504652W072275900W014000005         1800018000C    044044M SOUTHAMPTON                   758541810"
+
+  /// 87N COPTER RNAV (GPS) 190: the CCC transition, then the final approach route with a
+  /// continuation record.
+  static let southamptonRNAV190 = [
+    "SUSAH 87N K6FR190  ACCC   010CCC  K6D 0V       IF                                             18000                 B PS   758582010",
+    "SUSAH 87N K6FR190  ACCC   020TIDUEK6HC0EY   010TF                                 + 01700                           B PS   758592010",
+    "SUSAH 87N K6FR190  ACCC   030TIDUEK6HC0EE AL   HF                     19000040    + 01700                           B PS   758602010",
+    "SUSAH 87N K6FR190  R      010TIDUEK6HC0E  I    IF                                 + 01700     18000070              B-PS   758642010",
+    "SUSAH 87N K6FR190  R      020STAYSK6HC1E  F 010TF                                 + 01700                 CRANN K6HCB PS   758652010",
+    "SUSAH 87N K6FR190  R      020STAYSK6HC2WN          N          ALNAV                                                   PS   758662010",
+    "SUSAH 87N K6FR190  R      030CRANNK6HC0EY M 031TF                                   00560          070 000          B-PS   758672010",
+    "SUSAH 87N K6FR190  R      040         0  M     CA                     1900        + 00439                           B PS   758682010",
+    "SUSAH 87N K6FR190  R      050BEADSK6EA0EY  R010DF                                 + 02000          070              B-PS   758692010",
+    "SUSAH 87N K6FR190  R      060BEADSK6EA0EE  R   HM                     23600040    + 02000          090              B-PS   758702010"
+  ]
+
   /// MEDIN on the 5C1 RNAV (GPS) RWY 35 transition: a fly-over fix ending the route.
   static let flyoverEndOfTransition =
     "SUSAP 5C1 K4FR35   R      060MEDINK4EA0EB   010TF                                 + 04100                           A JS   969752201"
@@ -1253,6 +1271,66 @@ struct `RNP decoding` {
   @Test(arguments: ["0 1", "A31", "31"])
   func `throws for a malformed field`(_ field: String) {
     #expect(throws: CIFPError.self) { try CoordinateParser.parseRNP(Array(field.utf8)[...]) }
+  }
+}
+
+@Suite
+struct `approach identification` {
+  private static func approach(identifiedAs identifier: String) -> Approach {
+    Approach(
+      airportId: "KOAK",
+      icaoRegion: "K2",
+      identifier: identifier,
+      approachType: .rnav,
+      routeType: .finalApproach,
+      transitionId: nil,
+      legs: [],
+      missedApproachLegs: []
+    )
+  }
+
+  @Test
+  func `takes a transition's approach type from its final approach route`() throws {
+    let transition = try FAARecords.oaklandILS12Approach(transitionId: "RAIDR"),
+      final = try FAARecords.oaklandILS12Approach(transitionId: nil)
+
+    #expect(transition.approachType == .ils)
+    #expect(transition.routeType == .transition)
+    #expect(final.approachType == .ils)
+    #expect(final.routeType == .finalApproach)
+  }
+
+  @Test(
+    arguments: [
+      ("I12", "RW12", nil),
+      ("I19R", "RW19R", nil),
+      ("H12-Z", "RW12", "Z"),
+      ("I19RY", "RW19R", "Y"),
+      ("R029", nil, nil),
+      ("RNV-A", nil, "A")
+    ] as [(String, String?, String?)]
+  )
+  func `reads the runway and multiple indicator from the identifier`(
+    _ identifier: String,
+    _ runwayId: String?,
+    _ multipleIndicator: String?
+  ) {
+    let approach = Self.approach(identifiedAs: identifier)
+    #expect(approach.runwayId == runwayId)
+    #expect(approach.multipleIndicator == multipleIndicator)
+  }
+
+  @Test
+  func `keeps heliport approach transitions apart from the final approach`() throws {
+    let cifp = try FAARecords.parse([FAARecords.southampton] + FAARecords.southamptonRNAV190)
+    let approaches = try #require(cifp.heliports["87N"]?.approaches)
+      .sorted { ($0.transitionId ?? "") < ($1.transitionId ?? "") }
+
+    #expect(approaches.map(\.transitionId) == [nil, "CCC"])
+    #expect(approaches.map(\.routeType) == [.finalApproach, .transition])
+    #expect(approaches.map(\.approachType) == [.rnav, .rnav])
+    #expect(approaches.first?.legs.map(\.sequenceNumber) == [10, 20, 30])
+    #expect(approaches.first?.missedApproachLegs.map(\.sequenceNumber) == [40, 50, 60])
   }
 }
 

@@ -507,7 +507,7 @@ private struct CIFPBuilder {
         let key = "\(r.airportId)-\(r.procedureId)-\(r.transitionId ?? "")"
         heliportSTARLegs[key, default: []].append(r)
       case .heliportApproachLeg(let r):
-        let key = "\(r.airportId)-\(r.procedureId)"
+        let key = "\(r.airportId)-\(r.procedureId)-\(r.transitionId ?? "")"
         heliportApproachLegs[key, default: []].append(r)
       case .heliportMSA(let r):
         let key = "\(r.parentId)-\(r.center)"
@@ -753,57 +753,27 @@ private struct CIFPBuilder {
   }
 
   private func buildApproaches(errorCallback: ((any Error, Int?) -> Void)?) -> [Approach] {
-    var approaches: [Approach] = []
-    for (key, legRecords) in approachLegs {
-      guard let first = legRecords.first,
-        let approachTypeChar = first.routeType,
-        let approachType = ApproachType(rawValue: approachTypeChar)
-      else {
-        let reason: AggregationErrorReason =
-          if let first = legRecords.first, let char = first.routeType {
-            .invalidApproachType(char)
-          } else {
-            .missingApproachType
-          }
-        errorCallback?(
-          CIFPError.aggregationError(recordType: "Approach", identifier: key, reason: reason),
-          nil
-        )
-        continue
-      }
-      let sortedRecords = legRecords.sorted(by: { $0.leg.sequenceNumber < $1.leg.sequenceNumber })
-
-      // All legs at or after the first missed approach marker are missed approach legs.
-      // The FAA CIFP data only explicitly marks the first missed approach leg; subsequent
-      // legs (e.g., DF back to a hold fix, HM at the hold) lack the marker.
-      let firstMissedIndex =
-        sortedRecords.firstIndex(where: \.isMissedApproach)
-        ?? sortedRecords.endIndex
-      let mainLegs = sortedRecords[..<firstMissedIndex].map(\.leg)
-      let missedLegs = sortedRecords[firstMissedIndex...].map(\.leg)
-
-      // Look up continuation record for SBAS/LPV data
-      let continuation = approachContinuations[key]
-
-      approaches.append(
-        Approach(
+    buildApproachRoutes(
+      from: approachLegs,
+      recordTypeName: "Approach",
+      makeProcedure: { key, first, route in
+        let continuation = approachContinuations[key]
+        return Approach(
           airportId: first.airportId,
           icaoRegion: first.icaoRegion,
           identifier: first.procedureId,
-          approachType: approachType,
-          routeType: nil,
+          approachType: route.approachType,
+          routeType: route.routeType,
           transitionId: first.transitionId,
-          runwayId: nil,
-          multipleIndicator: nil,
-          legs: mainLegs,
-          missedApproachLegs: missedLegs,
+          legs: route.legs,
+          missedApproachLegs: route.missedApproachLegs,
           sbasServiceLevel: continuation?.sbasServiceLevel,
           requiredNavPerformance: continuation?.requiredNavPerformance,
           lateralNavCapability: continuation?.lateralNavCapability
         )
-      )
-    }
-    return approaches
+      },
+      errorCallback: errorCallback
+    )
   }
 
   private func buildControlledAirspaces(errorCallback: ((any Error, Int?) -> Void)?)
@@ -883,32 +853,86 @@ private struct CIFPBuilder {
   private func buildHeliportApproaches(errorCallback: ((any Error, Int?) -> Void)?)
     -> [HeliportApproach]
   {
-    var heliportApproaches: [HeliportApproach] = []
-    for (key, legs) in heliportApproachLegs {
-      guard let first = legs.first else {
-        errorCallback?(
-          CIFPError.aggregationError(
-            recordType: "HeliportApproach",
-            identifier: key,
-            reason: .noLegRecords
-          ),
-          nil
-        )
-        continue
-      }
-      heliportApproaches.append(
+    buildApproachRoutes(
+      from: heliportApproachLegs,
+      recordTypeName: "HeliportApproach",
+      makeProcedure: { _, first, route in
         HeliportApproach(
           parentId: first.airportId,
           icaoRegion: first.icaoRegion,
           identifier: first.procedureId,
-          approachType: nil,
-          transitionId: nil,
-          legs: legs.map(\.leg).sorted(by: { $0.sequenceNumber < $1.sequenceNumber }),
-          missedApproachLegs: []
+          approachType: route.approachType,
+          routeType: route.routeType,
+          transitionId: first.transitionId,
+          legs: route.legs,
+          missedApproachLegs: route.missedApproachLegs
+        )
+      },
+      errorCallback: errorCallback
+    )
+  }
+
+  // MARK: - Approach Helpers
+
+  /// The approach type of each procedure, keyed by airport and procedure. Only the final
+  /// approach route carries it; transitions carry route type "A" instead.
+  private func approachTypes(in legs: [String: [ProcedureLegRecord]]) -> [String: ApproachType] {
+    var result: [String: ApproachType] = [:]
+    for (_, legs) in legs {
+      guard let first = legs.first,
+        let code = first.routeType,
+        let approachType = ApproachType(rawValue: code)
+      else { continue }
+      result["\(first.airportId)-\(first.procedureId)"] = approachType
+    }
+    return result
+  }
+
+  /// Builds approach records from leg records grouped by procedure and transition.
+  private func buildApproachRoutes<Procedure>(
+    from legs: [String: [ProcedureLegRecord]],
+    recordTypeName: String,
+    makeProcedure: (String, ProcedureLegRecord, ApproachRoute) -> Procedure,
+    errorCallback: ((any Error, Int?) -> Void)?
+  ) -> [Procedure] {
+    let approachTypes = approachTypes(in: legs)
+    return legs.compactMap { key, legs in
+      func fail(_ reason: AggregationErrorReason) -> Procedure? {
+        errorCallback?(
+          CIFPError.aggregationError(recordType: recordTypeName, identifier: key, reason: reason),
+          nil
+        )
+        return nil
+      }
+
+      guard let first = legs.first, let code = first.routeType else {
+        return fail(.missingRouteType)
+      }
+      guard let routeType = Approach.RouteType(code: code) else {
+        return fail(.invalidRouteType(code))
+      }
+      guard let approachType = approachTypes["\(first.airportId)-\(first.procedureId)"] else {
+        return fail(.missingApproachType)
+      }
+
+      // All legs at or after the first missed approach marker are missed approach legs.
+      // The FAA CIFP data only explicitly marks the first missed approach leg; subsequent
+      // legs (e.g., DF back to a hold fix, HM at the hold) lack the marker.
+      let sortedRecords = legs.sorted { $0.leg.sequenceNumber < $1.leg.sequenceNumber }
+      let firstMissedIndex =
+        sortedRecords.firstIndex(where: \.isMissedApproach) ?? sortedRecords.endIndex
+
+      return makeProcedure(
+        key,
+        first,
+        ApproachRoute(
+          approachType: approachType,
+          routeType: routeType,
+          legs: sortedRecords[..<firstMissedIndex].map(\.leg),
+          missedApproachLegs: sortedRecords[firstMissedIndex...].map(\.leg)
         )
       )
     }
-    return heliportApproaches
   }
 
   private func buildHeliportMSAs() -> [HeliportMSA] {
@@ -1150,4 +1174,12 @@ private struct CIFPBuildResult {
   let specialUseAirspaces: [SpecialUseAirspace]
   /// Heliports with folded children (waypoints, approaches, MSAs)
   let heliports: [String: Heliport]
+}
+
+/// One approach route's legs, split where its missed approach begins.
+private struct ApproachRoute {
+  let approachType: ApproachType
+  let routeType: Approach.RouteType
+  let legs: [ProcedureLeg]
+  let missedApproachLegs: [ProcedureLeg]
 }

@@ -20,20 +20,15 @@ public struct Approach: Sendable, Codable, ProcedureLinkable {
   /// Approach identifier (e.g., "I09L", "R27", "V15").
   public let identifier: String
 
-  /// Approach type (ILS, RNAV, VOR, etc.).
+  /// Approach type (ILS, RNAV, VOR, etc.), shared by the procedure's transitions and its
+  /// final approach route.
   public let approachType: ApproachType
 
-  /// Route type qualifier.
-  public let routeType: ApproachRouteType?
+  /// Whether this route is a transition or the final approach.
+  public let routeType: RouteType
 
   /// Transition identifier (if this is a transition).
   public let transitionId: String?
-
-  /// Associated runway identifier (e.g., "RW19L").
-  public let runwayId: String?
-
-  /// Multiple indicator (for multiple approaches to same runway).
-  public let multipleIndicator: String?
 
   /// Approach legs (excluding missed approach).
   public internal(set) var legs: [ProcedureLeg]
@@ -93,10 +88,8 @@ public struct Approach: Sendable, Codable, ProcedureLinkable {
     icaoRegion: String,
     identifier: String,
     approachType: ApproachType,
-    routeType: ApproachRouteType?,
+    routeType: RouteType,
     transitionId: String?,
-    runwayId: String?,
-    multipleIndicator: String?,
     legs: [ProcedureLeg],
     missedApproachLegs: [ProcedureLeg],
     sbasServiceLevel: SBASServiceLevel? = nil,
@@ -109,8 +102,6 @@ public struct Approach: Sendable, Codable, ProcedureLinkable {
     self.approachType = approachType
     self.routeType = routeType
     self.transitionId = transitionId
-    self.runwayId = runwayId
-    self.multipleIndicator = multipleIndicator
     self.legs = legs
     self.missedApproachLegs = missedApproachLegs
     self.sbasServiceLevel = sbasServiceLevel
@@ -122,10 +113,67 @@ public struct Approach: Sendable, Codable, ProcedureLinkable {
 
   private enum CodingKeys: String, CodingKey {
     case airportId, icaoRegion, identifier, approachType
-    case routeType, transitionId, runwayId
-    case multipleIndicator, legs, missedApproachLegs
+    case routeType, transitionId, legs, missedApproachLegs
     case sbasServiceLevel, requiredNavPerformance, lateralNavCapability
     // Note: 'data' is excluded
+  }
+}
+
+// MARK: - Route Type
+
+extension Approach {
+  /// The part of an approach procedure a route covers (ARINC 424 field 5.7).
+  public enum RouteType: Sendable, Codable, Hashable, CaseIterable {
+    /// An approach transition, leading to the final approach route.
+    case transition
+
+    /// The final approach route, including its missed approach.
+    case finalApproach
+
+    /// A separately coded missed approach.
+    case missedApproach
+
+    private static let transitionCode: Character = "A",
+      missedApproachCode: Character = "Z"
+
+    /// Creates a route type from its record code: "A" for a transition, "Z" for a missed
+    /// approach, or the approach type code for a final approach route.
+    init?(code: Character) {
+      switch code {
+        case Self.transitionCode: self = .transition
+        case Self.missedApproachCode: self = .missedApproach
+        case _ where ApproachType(rawValue: code) != nil: self = .finalApproach
+        default: return nil
+      }
+    }
+  }
+}
+
+// MARK: - Identifier Components
+
+extension Approach {
+  private static let runwayPrefix = "RW",
+    runwayDesignations: Set<Character> = ["L", "R", "C", "T"]
+
+  /// The runway the approach serves (e.g., "RW19L"), or nil for a circling approach or one
+  /// identified by its final approach course.
+  public var runwayId: String? {
+    let characters = Array(identifier)
+    guard characters.count >= 3, characters[1...2].allSatisfy(\.isWholeNumber),
+      characters.count == 3 || !characters[3].isWholeNumber
+    else { return nil }
+
+    let designation =
+      characters.count > 3 && Self.runwayDesignations.contains(characters[3])
+      ? String(characters[3]) : ""
+    return Self.runwayPrefix + String(characters[1...2]) + designation
+  }
+
+  /// The letter distinguishing approaches of the same type to the same runway (the "Z" of
+  /// "RNAV (GPS) Z RWY 12").
+  public var multipleIndicator: String? {
+    let characters = Array(identifier)
+    return characters.count > 4 ? String(characters[4]) : nil
   }
 }
 

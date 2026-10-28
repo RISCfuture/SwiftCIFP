@@ -14,10 +14,7 @@ public enum AggregationErrorReason: Sendable {
   /// The procedure is missing its route type.
   case missingRouteType
 
-  /// The approach has an invalid approach type character.
-  case invalidApproachType(Character)
-
-  /// The approach is missing its approach type.
+  /// The approach procedure has no final approach route to take its approach type from.
   case missingApproachType
 
   /// The airspace has no boundary records.
@@ -198,10 +195,8 @@ public enum CIFPError: Error, LocalizedError, Sendable {
               String(localized: "invalid route type “\(String(char))”", bundle: .module)
             case .missingRouteType:
               String(localized: "missing route type", bundle: .module)
-            case .invalidApproachType(let char):
-              String(localized: "invalid approach type “\(String(char))”", bundle: .module)
             case .missingApproachType:
-              String(localized: "missing approach type", bundle: .module)
+              String(localized: "no final approach route", bundle: .module)
             case .noBoundaryRecords:
               String(localized: "no boundary records", bundle: .module)
             case .missingRestrictiveType:
