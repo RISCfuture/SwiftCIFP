@@ -102,14 +102,9 @@ extension CIFPByteParser {
     // Transition altitude
     let transAlt = CoordinateParser.parseTransitionAltitude(bytes.slice(94..<99))
 
-    // Speed limit
-    let speedLimit = CoordinateParser.parseSpeedLimit(bytes.slice(99..<102))
+    let speedConstraint = try parseSpeedConstraint(bytes, lineNumber: lineNumber)
 
-    // Speed limit description (position 102)
-    let speedDescByte = bytes.count > 102 ? bytes[bytes.startIndex + 102] : ASCII.space
-    let speedLimitDescription = SpeedLimitDescription(byte: speedDescByte)
-
-    // Vertical angle (position 103-106, but may be affected by speed description position)
+    // Vertical angle (positions 102-105)
     let verticalAngle = CoordinateParser.parseVerticalAngle(bytes.slice(102..<106))
 
     // Center fix (for RF legs)
@@ -145,10 +140,7 @@ extension CIFPByteParser {
       routeDistanceNMOrMinutes: distance,
       altitudeConstraint: altitudeConstraint,
       transitionAltitudeFt: transAlt,
-      speedConstraint: SpeedConstraint.from(
-        speedKnots: speedLimit,
-        description: speedLimitDescription
-      ),
+      speedConstraint: speedConstraint,
       verticalAngleDeg: verticalAngle,
       centerFix: centerFixIdent.isEmpty ? nil : centerFixIdent,
       centerFixICAO: centerFixICAO.isEmpty ? nil : centerFixICAO
@@ -193,6 +185,27 @@ extension CIFPByteParser {
       description: description ?? .at,
       altitude1: try CoordinateParser.parseAltitude(bytes.slice(84..<89), lineNumber: lineNumber),
       altitude2: try CoordinateParser.parseAltitude(bytes.slice(89..<94), lineNumber: lineNumber)
+    )
+  }
+
+  /// Parse a procedure leg's speed constraint from its speed limit (positions 99-101) and
+  /// speed limit description (position 117).
+  ///
+  /// A blank description is the mandatory "at" speed.
+  static func parseSpeedConstraint(
+    _ bytes: ArraySlice<UInt8>,
+    lineNumber: Int
+  ) throws -> SpeedConstraint? {
+    let descriptionByte = bytes.count > 117 ? bytes[bytes.startIndex + 117] : ASCII.space
+    let description: SpeedLimitDescription? = try CoordinateParser.parseCode(
+      descriptionByte,
+      field: "speed limit description",
+      value: String(Character(UnicodeScalar(descriptionByte))),
+      lineNumber: lineNumber
+    )
+    return SpeedConstraint.from(
+      speedKnots: CoordinateParser.parseSpeedLimit(bytes.slice(99..<102)),
+      description: description ?? .at
     )
   }
 

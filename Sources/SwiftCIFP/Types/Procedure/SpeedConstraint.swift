@@ -1,6 +1,6 @@
 public import Foundation
 
-/// Speed limit description code.
+/// Speed limit description code (ARINC 424 field 5.261). A blank description means ``at``.
 enum SpeedLimitDescription: Character, Sendable, Codable, CaseIterable, ByteInitializable {
   /// At speed.
   case at = "@"
@@ -36,12 +36,12 @@ extension SpeedConstraint {
   /// - Parameters:
   ///   - speedKnots: The speed limit in knots.
   ///   - description: The speed limit description code.
-  /// - Returns: A `SpeedConstraint` if both values are present, or `nil` otherwise.
+  /// - Returns: A `SpeedConstraint`, or `nil` if no speed limit is published.
   static func from(
     speedKnots: Int?,
-    description: SpeedLimitDescription?
+    description: SpeedLimitDescription
   ) -> SpeedConstraint? {
-    guard let speedKnots, let description else { return nil }
+    guard let speedKnots else { return nil }
 
     switch description {
       case .at:

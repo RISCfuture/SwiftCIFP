@@ -1088,6 +1088,10 @@ private enum FAARecords {
   static let flyoverEndOfTransition =
     "SUSAP 5C1 K4FR35   R      060MEDINK4EA0EB   010TF                                 + 04100                           A JS   969752201"
 
+  /// RBUCL on the KOAK ANET1 STAR, crossed at 280 knots.
+  static let mandatorySpeed =
+    "SUSAP KOAKK2EAANET14RBUCL 010RBUCLK2PC0E       IF                                 - FL300     18000280                     722621503"
+
   /// EVRTT on a CYXX STAR, crossed between 14,000 and 16,000 feet.
   static let betweenAltitudes =
     "SCANP CYXXCYEMADEE74KONAH 020EVRTTK1EA0E       TF                                 B 1600014000                             054822607"
@@ -1132,6 +1136,10 @@ private enum FAARecords {
 
   static func altitudeConstraint(_ record: String) throws -> AltitudeConstraint? {
     try CIFPByteParser.parseAltitudeConstraint(Array(record.utf8)[...], lineNumber: 1)
+  }
+
+  static func speedConstraint(_ record: String) throws -> SpeedConstraint? {
+    try CIFPByteParser.parseSpeedConstraint(Array(record.utf8)[...], lineNumber: 1)
   }
 }
 
@@ -1253,6 +1261,21 @@ struct `altitude constraint decoding` {
   func `attaches the constraint to the parsed leg`() throws {
     let approach = try FAARecords.oaklandILS12Approach(transitionId: "RAIDR")
     #expect(approach.legs.first?.altitudeConstraint == .at(.feet(5000, .msl)))
+  }
+}
+
+@Suite
+struct `speed constraint decoding` {
+  @Test
+  func `treats a blank description as a mandatory speed`() throws {
+    #expect(try FAARecords.speedConstraint(FAARecords.mandatorySpeed) == .at(knots: 280))
+  }
+
+  @Test
+  func `reads the description from column 118`() throws {
+    let records = FAARecords.southamptonRNAV190
+    #expect(try FAARecords.speedConstraint(records[3]) == .atOrBelow(knots: 70))
+    #expect(try FAARecords.speedConstraint(records[4]) == nil)
   }
 }
 

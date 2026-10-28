@@ -19,6 +19,11 @@
   such legs, including RAIDR's 5,000-foot crossing on KOAK ILS RWY 12.
 - `between` constraints had their altitudes swapped. ARINC puts the higher
   altitude in the first field.
+- Speed limits are no longer dropped. The description was read from column 103,
+  the first character of the vertical angle, rather than column 118, and a
+  blank description, which ARINC 424 field 5.261 defines as the mandatory "at"
+  speed, produced no constraint. Cycle 2610 publishes 9,560 speed limits, and
+  all but one were lost, including 4,104 "at or below" maximums.
 - RNP decodes as a two-digit mantissa and a negative exponent (ARINC 424 field
   5.211), so `031` is 0.3 NM rather than 3.1 NM. A malformed value now fails the
   record.

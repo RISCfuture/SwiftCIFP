@@ -136,12 +136,7 @@ extension CIFPByteParser {
     // Transition altitude
     let transAlt = CoordinateParser.parseTransitionAltitude(bytes.slice(94..<99))
 
-    // Speed limit
-    let speedLimit = CoordinateParser.parseSpeedLimit(bytes.slice(99..<102))
-
-    // Speed limit description (position 102)
-    let heliSpeedDescByte = bytes.count > 102 ? bytes[bytes.startIndex + 102] : ASCII.space
-    let heliSpeedLimitDescription = SpeedLimitDescription(byte: heliSpeedDescByte)
+    let speedConstraint = try parseSpeedConstraint(bytes, lineNumber: lineNumber)
 
     // Vertical angle
     let verticalAngle = CoordinateParser.parseVerticalAngle(bytes.slice(102..<106))
@@ -179,10 +174,7 @@ extension CIFPByteParser {
       routeDistanceNMOrMinutes: distance,
       altitudeConstraint: altitudeConstraint,
       transitionAltitudeFt: transAlt,
-      speedConstraint: SpeedConstraint.from(
-        speedKnots: speedLimit,
-        description: heliSpeedLimitDescription
-      ),
+      speedConstraint: speedConstraint,
       verticalAngleDeg: verticalAngle,
       centerFix: centerFixIdent.isEmpty ? nil : centerFixIdent,
       centerFixICAO: centerFixICAO.isEmpty ? nil : centerFixICAO
