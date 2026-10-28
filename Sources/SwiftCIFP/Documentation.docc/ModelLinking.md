@@ -74,8 +74,8 @@ for approach in data.approaches {
 ### ProcedureLeg
 
 - ``ProcedureLeg/fix``: The resolved fix (VHF navaid, NDB, or waypoint)
-- ``ProcedureLeg/navaid``: The resolved recommended navaid
-- ``ProcedureLeg/centerFixObject``: The resolved center fix (for RF legs)
+- ``ProcedureLeg/recommendedNavaid``: The resolved recommended navaid
+- ``ProcedureLeg/centerFix``: The resolved center fix (for RF legs)
 
 ### AirwayFix
 

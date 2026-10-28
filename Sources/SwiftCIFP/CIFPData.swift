@@ -104,12 +104,13 @@ public actor CIFPData {
       + airports.values.reduce(airports.count) { (count: Int, airport) in
         count + airport.runways.count + airport.terminalWaypoints.count
           + airport.terminalNavaids.count + airport.localizers.count
-          + airport.pathPoints.count + airport.msaRecords.count
+          + airport.pathPoints.count + airport.minimumSafeAltitudes.count
           + airport.sids.count + airport.stars.count + airport.approaches.count
       }
       + controlledAirspaces.count + specialUseAirspaces.count
       + heliports.values.reduce(heliports.count) { (count: Int, heliport) in
-        count + heliport.waypoints.count + heliport.approaches.count + heliport.msaRecords.count
+        count + heliport.waypoints.count + heliport.approaches.count
+          + heliport.minimumSafeAltitudes.count
       }
   }
 
@@ -234,8 +235,8 @@ public actor CIFPData {
       }
 
       // Link MSA records
-      for i in airports[key]?.msaRecords.indices ?? (0..<0) {
-        airports[key]?.msaRecords[i].data = self
+      for i in airports[key]?.minimumSafeAltitudes.indices ?? (0..<0) {
+        airports[key]?.minimumSafeAltitudes[i].data = self
       }
 
       // Link terminal navaids
@@ -307,8 +308,8 @@ public actor CIFPData {
       }
 
       // Link heliport MSA records
-      for i in heliports[key]?.msaRecords.indices ?? (0..<0) {
-        heliports[key]?.msaRecords[i].data = self
+      for i in heliports[key]?.minimumSafeAltitudes.indices ?? (0..<0) {
+        heliports[key]?.minimumSafeAltitudes[i].data = self
       }
     }
   }

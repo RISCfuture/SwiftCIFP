@@ -131,7 +131,7 @@ extension CIFPByteParser {
       rnpNM: rnp,
       pathTerminator: PathTerminator(rawValue: pathTermStr),
       isTurnDirectionValid: isTurnDirectionValid,
-      recommendedNavaid: recNavaid.isEmpty ? nil : recNavaid,
+      recommendedNavaidId: recNavaid.isEmpty ? nil : recNavaid,
       recommendedNavaidICAO: recNavaidICAO.isEmpty ? nil : recNavaidICAO,
       arcRadiusNM: arcRadius,
       thetaDeg: theta,
@@ -142,7 +142,7 @@ extension CIFPByteParser {
       transitionAltitudeFt: transAlt,
       speedConstraint: speedConstraint,
       verticalAngleDeg: verticalAngle,
-      centerFix: centerFixIdent.isEmpty ? nil : centerFixIdent,
+      centerFixId: centerFixIdent.isEmpty ? nil : centerFixIdent,
       centerFixICAO: centerFixICAO.isEmpty ? nil : centerFixICAO
     )
 

@@ -99,6 +99,36 @@
   per ARINC 424 field 5.82, plus `isRNAV`. `WaypointUsage` and
   `TerminalWaypoint.waypointUsage`, a field terminal waypoints don't carry,
   are gone.
+- **BREAKING:** Types that belong to one model are nested in it:
+
+  | 2.0.0 | Now |
+  | --- | --- |
+  | `MagVarDirection` | `MagneticVariation.Direction` |
+  | `SIDRouteType`, `STARRouteType` | `SID.RouteType`, `STAR.RouteType` |
+  | `PathPointType` | `PathPoint.Kind` |
+  | `MSASector` | `MSA.Sector` |
+  | `AirspaceClass` | `ControlledAirspace.Class` |
+  | `RestrictiveAirspaceType` | `SpecialUseAirspace.Kind` |
+  | `PublicMilitary` | `Airport.Use` |
+  | `FileType` | `Header.FileType` |
+  | `CIFPFormatError` | `CIFPError.FormatReason` |
+  | `AggregationErrorReason` | `CIFPError.AggregationReason` |
+
+- **BREAKING:** Properties are named for what they hold:
+
+  | 2.0.0 | Now |
+  | --- | --- |
+  | `Airport.publicMilitary` | `Airport.use` |
+  | `Airport.datumCode` (`DatumCode`) | `Airport.datum` (`GeodeticDatum`) |
+  | `Airport.msaRecords`, `Heliport.msaRecords` | `minimumSafeAltitudes` |
+  | `PathPoint.pathPointType` | `PathPoint.kind` |
+  | `SpecialUseAirspace.restrictiveType` | `SpecialUseAirspace.kind` |
+  | `ProcedureLeg.centerFix`, `centerFixObject` | `centerFixId`, `centerFix` |
+  | `ProcedureLeg.recommendedNavaid`, `navaid` | `recommendedNavaidId`, `recommendedNavaid` |
+
+  `MagneticVariation.Direction.true` is now `trueNorth`.
+- **BREAKING:** The unused `NDBInfo`, `IFRCapability`, `WaypointNameFormat`,
+  and `DMEType` enums are gone.
 - **BREAKING:** `AltitudeConstraint` follows ARINC 424 field 5.29. The `G`,
   `H`, `I`, `J`, `V`, `X`, and `Y` cases each pair the procedure altitude with
   a glide slope, glide slope intercept, or vertical path altitude.

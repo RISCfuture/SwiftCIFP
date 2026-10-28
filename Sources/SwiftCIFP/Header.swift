@@ -1,13 +1,5 @@
 public import Foundation
 
-/// CIFP file data type indicator.
-public enum FileType: String, Sendable, Codable, Equatable, Hashable {
-  /// Production data.
-  case production = "P"
-  /// Test data.
-  case test = "T"
-}
-
 /// CIFP file header information.
 ///
 /// Contains metadata from the HDR01-HDR05 records at the start of the file.
@@ -67,5 +59,17 @@ public struct Header: Sendable, Codable, Equatable, Hashable {
     self.creationDateComponents = creationDateComponents
     self.dataSupplier = dataSupplier
     self.descriptiveText = descriptiveText
+  }
+}
+
+// MARK: - File Type
+
+extension Header {
+  /// CIFP file data type indicator.
+  public enum FileType: String, Sendable, Codable, Equatable, Hashable {
+    /// Production data.
+    case production = "P"
+    /// Test data.
+    case test = "T"
   }
 }

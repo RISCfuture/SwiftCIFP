@@ -20,7 +20,7 @@ extension CIFPByteParser {
         icaoRegion: icaoRegion,
         airspaceType: typeByte == ASCII.space ? nil : Character(UnicodeScalar(typeByte)),
         centerOrDesignation: center,
-        airspaceClass: AirspaceClass(byte: classByte),
+        airspaceClass: ControlledAirspace.Class(byte: classByte),
         restrictiveType: nil,
         multipleCode: parseAirspaceMultipleCode(bytes),
         name: bytes.slice(93..<123).toString(),
@@ -52,7 +52,7 @@ extension CIFPByteParser {
         airspaceType: nil,
         centerOrDesignation: designation,
         airspaceClass: nil,
-        restrictiveType: RestrictiveAirspaceType(byte: typeByte),
+        restrictiveType: SpecialUseAirspace.Kind(byte: typeByte),
         multipleCode: parseAirspaceMultipleCode(bytes),
         name: bytes.slice(93..<123).toString(),
         boundary: try parseAirspaceBoundary(

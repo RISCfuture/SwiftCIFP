@@ -99,7 +99,7 @@ extension CIFPByteParser {
 
     // Public/Military status (position 80)
     let pubMilByte = bytes.count > 80 ? bytes[bytes.startIndex + 80] : ASCII.space
-    let publicMilitary = PublicMilitary(byte: pubMilByte)
+    let use = Airport.Use(byte: pubMilByte)
 
     // Magnetic/True indicator (position 85)
     let magTrueByte = bytes.count > 85 ? bytes[bytes.startIndex + 85] : ASCII.M
@@ -107,7 +107,7 @@ extension CIFPByteParser {
 
     // Datum code (position 86-89, 3 chars)
     let datumSlice = bytes.slice(86..<89)
-    let datumCode = datumSlice.isBlank() ? nil : DatumCode(rawValue: datumSlice.toString())
+    let datum = datumSlice.isBlank() ? nil : GeodeticDatum(rawValue: datumSlice.toString())
 
     let name = bytes.slice(93..<123).toString()
 
@@ -148,9 +148,9 @@ extension CIFPByteParser {
         speedLimitKts: speedLimit,
         transitionAltitudeFt: transitionAltitudeFt,
         transitionLevel: transitionLevel,
-        publicMilitary: publicMilitary,
+        use: use,
         bearingReference: bearingReference,
-        datumCode: datumCode,
+        datum: datum,
         name: name
       )
     )

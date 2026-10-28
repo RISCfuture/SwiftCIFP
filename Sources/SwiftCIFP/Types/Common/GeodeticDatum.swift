@@ -4,7 +4,7 @@ import Foundation
 ///
 /// ARINC 424 defines these codes to specify which geodetic datum
 /// coordinates are referenced to. Modern data typically uses WGS-84.
-public enum DatumCode: String, Sendable, Codable, Equatable, Hashable, CaseIterable {
+public enum GeodeticDatum: String, Sendable, Codable, Equatable, Hashable, CaseIterable {
   // MARK: - World Geodetic Systems
 
   /// World Geodetic System 1984 (WGS-84) - current standard

@@ -66,7 +66,7 @@ extension CIFPByteParser {
         centerICAO: icaoRegion,
         multipleCode: multipleCode,
         radius: radius,
-        sector: MSASector(
+        sector: MSA.Sector(
           sectorBearings: sectorBearings,
           altitudeFt: altitudeFt
         ),
@@ -120,7 +120,7 @@ extension CIFPByteParser {
         icaoRegion: icaoRegion,
         center: msaCenter,
         radius: radius,
-        sector: MSASector(
+        sector: MSA.Sector(
           sectorBearings: sectorBearings,
           altitudeFt: altitude
         )

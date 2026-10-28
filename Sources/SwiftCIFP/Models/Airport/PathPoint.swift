@@ -1,17 +1,5 @@
 public import Foundation
 
-/// Path point type.
-public enum PathPointType: Character, Sendable, Codable, CaseIterable, ByteInitializable {
-  /// Landing threshold point (LTP).
-  case landingThreshold = "A"
-
-  /// Flight path alignment point (FPAP).
-  case flightPathAlignment = "G"
-
-  /// Glide path intercept point (GPIP).
-  case glidePathIntercept = "P"
-}
-
 /// Path Point record.
 ///
 /// Defines precision path points for RNAV approaches (GLS, SBAS, etc.).
@@ -35,7 +23,7 @@ public struct PathPoint: Sendable, Codable, CIFPDataLinkable {
   let runwayId: String
 
   /// Path point type.
-  public let pathPointType: PathPointType?
+  public let kind: Kind?
 
   /// Point coordinate (LTP/FTP coordinate from primary record).
   public let coordinate: Coordinate?
@@ -84,7 +72,7 @@ public struct PathPoint: Sendable, Codable, CIFPDataLinkable {
     icaoRegion: String,
     approachId: String,
     runwayId: String,
-    pathPointType: PathPointType?,
+    kind: Kind?,
     coordinate: Coordinate?,
     ellipsoidHeightFt: Double?,
     glidepathAngleDeg: Double?,
@@ -103,7 +91,7 @@ public struct PathPoint: Sendable, Codable, CIFPDataLinkable {
     self.icaoRegion = icaoRegion
     self.approachId = approachId
     self.runwayId = runwayId
-    self.pathPointType = pathPointType
+    self.kind = kind
     self.coordinate = coordinate
     self.ellipsoidHeightFt = ellipsoidHeightFt
     self.glidepathAngleDeg = glidepathAngleDeg
@@ -123,7 +111,7 @@ public struct PathPoint: Sendable, Codable, CIFPDataLinkable {
 
   private enum CodingKeys: String, CodingKey {
     case airportId, icaoRegion, approachId, runwayId
-    case pathPointType, coordinate, ellipsoidHeightFt
+    case kind, coordinate, ellipsoidHeightFt
     case glidepathAngleDeg, flightPathAlignmentPoint
     case courseWidthM, lengthOffsetM, referencePathId
     case fpapEllipsoidHeightFt, fpapOrthometricHeightFt
@@ -213,5 +201,21 @@ extension PathPoint {
       guard let data else { return nil }
       return await data.approach(approachId, airportId: airportId)
     }
+  }
+}
+
+// MARK: - Kind
+
+extension PathPoint {
+  /// Path point type.
+  public enum Kind: Character, Sendable, Codable, CaseIterable, ByteInitializable {
+    /// Landing threshold point (LTP).
+    case landingThreshold = "A"
+
+    /// Flight path alignment point (FPAP).
+    case flightPathAlignment = "G"
+
+    /// Glide path intercept point (GPIP).
+    case glidePathIntercept = "P"
   }
 }

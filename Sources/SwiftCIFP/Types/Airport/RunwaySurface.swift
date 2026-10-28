@@ -14,18 +14,3 @@ public enum RunwaySurface: Character, Sendable, Codable, CaseIterable, ByteIniti
   /// Unknown surface type.
   case unknown = "U"
 }
-
-/// Airport public/military status.
-public enum PublicMilitary: Character, Sendable, Codable, CaseIterable, ByteInitializable {
-  /// Civil/public airport.
-  case civil = "C"
-
-  /// Military airport.
-  case military = "M"
-
-  /// Joint use (civil and military).
-  case joint = "J"
-
-  /// Private airport.
-  case `private` = "P"
-}

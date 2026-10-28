@@ -76,7 +76,7 @@ struct SummaryOutputFormatter: OutputFormatter {
         stars += airport.stars.count
         approaches += airport.approaches.count
         localizers += airport.localizers.count
-        msaRecords += airport.msaRecords.count
+        msaRecords += airport.minimumSafeAltitudes.count
         pathPoints += airport.pathPoints.count
       }
     }

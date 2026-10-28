@@ -15,7 +15,7 @@
 - ``location``
 - ``magneticVariation``
 - ``bearingReference``
-- ``datumCode``
+- ``datum``
 
 ### Physical Characteristics
 
@@ -29,7 +29,7 @@
 - ``speedLimitKts``
 - ``transitionAltitudeFt``
 - ``transitionLevel``
-- ``publicMilitary``
+- ``use``
 
 ### Child Collections
 
@@ -38,7 +38,7 @@
 - ``terminalNavaids``
 - ``localizers``
 - ``pathPoints``
-- ``msaRecords``
+- ``minimumSafeAltitudes``
 - ``sids``
 - ``stars``
 - ``approaches``

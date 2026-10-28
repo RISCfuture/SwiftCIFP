@@ -31,7 +31,7 @@ extension CIFPByteParser {
 
     // Path point type (position 35)
     let pathPointTypeByte = bytes.count > 35 ? bytes[bytes.startIndex + 35] : ASCII.space
-    let pathPointType = PathPointType(byte: pathPointTypeByte)
+    let pathPointType = PathPoint.Kind(byte: pathPointTypeByte)
 
     // Path points use high-precision coordinates (11 + 12 = 23 bytes) starting at position 37
     let coord = CoordinateParser.parseHighPrecisionCoordinate(bytes.slice(37..<60))
@@ -77,7 +77,7 @@ extension CIFPByteParser {
         icaoRegion: icaoRegion,
         approachId: approachIdent,
         runwayId: runwayIdent,
-        pathPointType: pathPointType,
+        kind: pathPointType,
         coordinate: coord,
         ellipsoidHeightFt: ellipsoidHeight,
         glidepathAngleDeg: glidepathAngle,

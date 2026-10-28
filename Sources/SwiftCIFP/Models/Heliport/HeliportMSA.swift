@@ -21,7 +21,7 @@ public struct HeliportMSA: Sendable, Codable, CIFPDataLinkable {
   public let radiusNM: Double?
 
   /// Sectors with minimum altitudes.
-  public let sectors: Set<MSASector>
+  public let sectors: Set<MSA.Sector>
 
   /// Creates a HeliportMSA record.
   init(
@@ -29,7 +29,7 @@ public struct HeliportMSA: Sendable, Codable, CIFPDataLinkable {
     icaoRegion: String,
     center: String,
     radiusNM: Double?,
-    sectors: Set<MSASector>
+    sectors: Set<MSA.Sector>
   ) {
     self.parentId = parentId
     self.icaoRegion = icaoRegion

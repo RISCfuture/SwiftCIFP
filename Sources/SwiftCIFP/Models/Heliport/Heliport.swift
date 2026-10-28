@@ -34,8 +34,8 @@ public struct Heliport: Sendable, Codable, CIFPDataLinkable {
   /// Approach procedures at this heliport.
   public internal(set) var approaches: [HeliportApproach] = []
 
-  /// MSA records at this heliport.
-  public internal(set) var msaRecords: [HeliportMSA] = []
+  /// Minimum safe altitudes around this heliport.
+  public internal(set) var minimumSafeAltitudes: [HeliportMSA] = []
 
   /// Creates a Heliport record.
   init(
@@ -59,7 +59,7 @@ public struct Heliport: Sendable, Codable, CIFPDataLinkable {
   private enum CodingKeys: String, CodingKey {
     case id, icaoRegion, coordinate, elevationFt
     case magneticVariation, name
-    case waypoints, approaches, msaRecords
+    case waypoints, approaches, minimumSafeAltitudes
     // Note: 'data' is excluded
   }
 }

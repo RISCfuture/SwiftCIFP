@@ -92,12 +92,13 @@ public struct CIFP: Sendable, Codable {
       + airports.values.reduce(airports.count) { (count: Int, airport) in
         count + airport.runways.count + airport.terminalWaypoints.count
           + airport.terminalNavaids.count + airport.localizers.count
-          + airport.pathPoints.count + airport.msaRecords.count
+          + airport.pathPoints.count + airport.minimumSafeAltitudes.count
           + airport.sids.count + airport.stars.count + airport.approaches.count
       }
       + controlledAirspaces.count + specialUseAirspaces.count
       + heliports.values.reduce(heliports.count) { (count: Int, heliport) in
-        count + heliport.waypoints.count + heliport.approaches.count + heliport.msaRecords.count
+        count + heliport.waypoints.count + heliport.approaches.count
+          + heliport.minimumSafeAltitudes.count
       }
   }
 
@@ -416,7 +417,7 @@ private struct CIFPBuilder {
   var pathPointRecords:
     [String: (primary: PathPoint?, continuation: PathPointContinuationRecord?)] =
       [:]
-  var msaRecords: [String: (base: MSARecord, sectors: [MSASector])] = [:]
+  var msaRecords: [String: (base: MSARecord, sectors: [MSA.Sector])] = [:]
   var sidLegs: [String: [ProcedureLegRecord]] = [:]
   var starLegs: [String: [ProcedureLegRecord]] = [:]
   var approachLegs: [String: [ProcedureLegRecord]] = [:]
@@ -427,7 +428,7 @@ private struct CIFPBuilder {
   var heliportSIDLegs: [String: [ProcedureLegRecord]] = [:]
   var heliportSTARLegs: [String: [ProcedureLegRecord]] = [:]
   var heliportApproachLegs: [String: [ProcedureLegRecord]] = [:]
-  var heliportMSARecords: [String: (base: HeliportMSARecord, sectors: [MSASector])] = [:]
+  var heliportMSARecords: [String: (base: HeliportMSARecord, sectors: [MSA.Sector])] = [:]
   var approachContinuations: [String: ApproachContinuationRecord] = [:]
 
   mutating func add(_ record: ParsedRecord) {
@@ -645,13 +646,13 @@ private struct CIFPBuilder {
 
   private func buildSIDs(errorCallback: ((any Error, Int?) -> Void)?) -> [SID] {
     let runwayNames = collectRunwayNames(from: sidLegs) { char in
-      SIDRouteType(rawValue: char)?.isRunwayTransition ?? false
+      SID.RouteType(rawValue: char)?.isRunwayTransition ?? false
     }
     return buildProcedures(
       from: sidLegs,
       recordTypeName: "SID",
       runwayNames: runwayNames,
-      parseRouteType: { SIDRouteType(rawValue: $0) },
+      parseRouteType: { SID.RouteType(rawValue: $0) },
       makeProcedure: { first, routeType, runways, legs in
         SID(
           airportId: first.airportId,
@@ -669,13 +670,13 @@ private struct CIFPBuilder {
 
   private func buildSTARs(errorCallback: ((any Error, Int?) -> Void)?) -> [STAR] {
     let runwayNames = collectRunwayNames(from: starLegs) { char in
-      STARRouteType(rawValue: char)?.isRunwayTransition ?? false
+      STAR.RouteType(rawValue: char)?.isRunwayTransition ?? false
     }
     return buildProcedures(
       from: starLegs,
       recordTypeName: "STAR",
       runwayNames: runwayNames,
-      parseRouteType: { STARRouteType(rawValue: $0) },
+      parseRouteType: { STAR.RouteType(rawValue: $0) },
       makeProcedure: { first, routeType, runways, legs in
         STAR(
           airportId: first.airportId,
@@ -727,7 +728,7 @@ private struct CIFPBuilder {
         let routeTypeChar = first.routeType,
         let routeType = parseRouteType(routeTypeChar)
       else {
-        let reason: AggregationErrorReason =
+        let reason: CIFPError.AggregationReason =
           if let first = legs.first, let char = first.routeType {
             .invalidRouteType(char)
           } else {
@@ -815,7 +816,7 @@ private struct CIFPBuilder {
       guard let first = records.first,
         let restrictiveType = first.restrictiveType
       else {
-        let reason: AggregationErrorReason =
+        let reason: CIFPError.AggregationReason =
           if records.first != nil {
             .missingRestrictiveType
           } else {
@@ -834,7 +835,7 @@ private struct CIFPBuilder {
       specialUseAirspaces.append(
         SpecialUseAirspace(
           icaoRegion: first.icaoRegion,
-          restrictiveType: restrictiveType,
+          kind: restrictiveType,
           designation: first.centerOrDesignation,
           multipleCode: first.multipleCode,
           name: first.name,
@@ -894,7 +895,7 @@ private struct CIFPBuilder {
   ) -> [Procedure] {
     let approachTypes = approachTypes(in: legs)
     return legs.compactMap { key, legs in
-      func fail(_ reason: AggregationErrorReason) -> Procedure? {
+      func fail(_ reason: CIFPError.AggregationReason) -> Procedure? {
         errorCallback?(
           CIFPError.aggregationError(recordType: recordTypeName, identifier: key, reason: reason),
           nil
@@ -962,7 +963,7 @@ private struct CIFPBuilder {
           icaoRegion: primary.icaoRegion,
           approachId: primary.approachId,
           runwayId: primary.runwayId,
-          pathPointType: primary.pathPointType,
+          kind: primary.kind,
           coordinate: primary.coordinate,
           ellipsoidHeightFt: primary.ellipsoidHeightFt,
           glidepathAngleDeg: primary.glidepathAngleDeg,
@@ -1017,7 +1018,7 @@ private struct CIFPBuilder {
     }
     let msasByAirport = Dictionary(grouping: msas) { $0.airportId }
     for (airportId, airportMsas) in msasByAirport {
-      foldedAirports[airportId]?.msaRecords = airportMsas
+      foldedAirports[airportId]?.minimumSafeAltitudes = airportMsas
     }
     let sidsByAirport = Dictionary(grouping: sids) { $0.airportId }
     for (airportId, airportSids) in sidsByAirport {
@@ -1051,7 +1052,7 @@ private struct CIFPBuilder {
     }
     let msasByHeliport = Dictionary(grouping: msas) { $0.parentId }
     for (heliportId, msaList) in msasByHeliport {
-      foldedHeliports[heliportId]?.msaRecords = msaList
+      foldedHeliports[heliportId]?.minimumSafeAltitudes = msaList
     }
     return foldedHeliports
   }
@@ -1082,7 +1083,7 @@ private struct CIFPBuilder {
       cycleId = extractField(from: hdr01, start: 35, length: 4)
 
     // Parse file type
-    let fileType = FileType(rawValue: fileTypeChar) ?? .production
+    let fileType = Header.FileType(rawValue: fileTypeChar) ?? .production
 
     // Parse record count
     let recordCount = Int(recordCountStr) ?? 0

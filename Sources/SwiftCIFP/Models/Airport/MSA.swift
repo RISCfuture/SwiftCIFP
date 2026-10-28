@@ -1,28 +1,5 @@
 public import Foundation
 
-/// MSA (Minimum Sector Altitude) sector.
-public struct MSASector: Sendable, Codable, Hashable {
-  /// Sector bearing range (clockwise from lower to upper bound).
-  public let sectorBearings: BearingRange
-
-  /// Sector altitude in feet MSL.
-  public let altitudeFt: Int
-
-  /// Returns whether the given bearing falls within this sector.
-  public func contains(bearing: Double) -> Bool {
-    sectorBearings.contains(bearing)
-  }
-}
-
-// MARK: - MSASector Measurement Extensions
-
-extension MSASector {
-  /// Sector altitude as a Measurement.
-  public var altitude: Measurement<UnitLength> {
-    .init(value: Double(altitudeFt), unit: .feet)
-  }
-}
-
 /// MSA (Minimum Sector Altitude) record.
 ///
 /// Provides minimum safe altitudes within a specified radius of a navigation fix.
@@ -52,7 +29,7 @@ public struct MSA: Sendable, Codable, CIFPDataLinkable {
   public let radiusNM: Double
 
   /// Sectors with minimum altitudes.
-  public let sectors: Set<MSASector>
+  public let sectors: Set<Sector>
 
   /// Reference system for bearings (magnetic or true north).
   public let bearingReference: BearingReference
@@ -65,7 +42,7 @@ public struct MSA: Sendable, Codable, CIFPDataLinkable {
     centerICAO: String,
     multipleCode: String?,
     radiusNM: Double,
-    sectors: Set<MSASector>,
+    sectors: Set<Sector>,
     bearingReference: BearingReference
   ) {
     self.airportId = airportId
@@ -140,5 +117,32 @@ extension MSA {
       guard let data else { return nil }
       return await data.airport(airportId)
     }
+  }
+}
+
+// MARK: - Sector
+
+extension MSA {
+  /// MSA (Minimum Sector Altitude) sector.
+  public struct Sector: Sendable, Codable, Hashable {
+    /// Sector bearing range (clockwise from lower to upper bound).
+    public let sectorBearings: BearingRange
+
+    /// Sector altitude in feet MSL.
+    public let altitudeFt: Int
+
+    /// Returns whether the given bearing falls within this sector.
+    public func contains(bearing: Double) -> Bool {
+      sectorBearings.contains(bearing)
+    }
+  }
+}
+
+// MARK: - Sector Measurement Extensions
+
+extension MSA.Sector {
+  /// Sector altitude as a Measurement.
+  public var altitude: Measurement<UnitLength> {
+    .init(value: Double(altitudeFt), unit: .feet)
   }
 }

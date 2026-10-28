@@ -21,7 +21,7 @@ public struct STAR: Sendable, Codable, ProcedureLinkable {
   public let identifier: String
 
   /// Route type.
-  public let routeType: STARRouteType
+  public let routeType: RouteType
 
   /// Transition identifier (if this is a transition).
   public let transitionId: String?
@@ -52,7 +52,7 @@ public struct STAR: Sendable, Codable, ProcedureLinkable {
     airportId: String,
     icaoRegion: String,
     identifier: String,
-    routeType: STARRouteType,
+    routeType: RouteType,
     transitionId: String?,
     runwayNames: Set<String>,
     legs: [ProcedureLeg]
@@ -147,6 +147,60 @@ extension STAR {
       guard let data else { return [] }
       guard let airport = await data.airport(airportId) else { return [] }
       return airport.runways.filter { runwayNames.contains($0.name) }
+    }
+  }
+}
+
+// MARK: - Route Type
+
+extension STAR {
+  /// STAR route type (arrival procedure).
+  public enum RouteType: Character, Sendable, Codable, CaseIterable, ByteInitializable {
+    /// STAR enroute transition.
+    case enrouteTransition = "1"
+
+    /// STAR or common route.
+    case commonRoute = "2"
+
+    /// STAR runway transition.
+    case runwayTransition = "3"
+
+    /// RNAV STAR enroute transition.
+    case rnavEnrouteTransition = "4"
+
+    /// RNAV STAR or common route.
+    case rnavCommonRoute = "5"
+
+    /// RNAV STAR runway transition.
+    case rnavRunwayTransition = "6"
+
+    /// Profile descent enroute transition.
+    case profileDescentEnrouteTransition = "7"
+
+    /// Profile descent common route.
+    case profileDescentCommonRoute = "8"
+
+    /// Profile descent runway transition.
+    case profileDescentRunwayTransition = "9"
+
+    /// FMS STAR enroute transition.
+    case fmsEnrouteTransition = "F"
+
+    /// FMS STAR or common route.
+    case fmsCommonRoute = "M"
+
+    /// FMS STAR runway transition.
+    case fmsRunwayTransition = "S"
+
+    /// Whether this route type is a runway transition.
+    public var isRunwayTransition: Bool {
+      switch self {
+        case .runwayTransition, .rnavRunwayTransition, .profileDescentRunwayTransition,
+          .fmsRunwayTransition:
+          true
+        default:
+          false
+      }
     }
   }
 }

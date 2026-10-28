@@ -174,7 +174,7 @@ enum CoordinateParser {
     guard bytes.count >= 5, !bytes.isBlank() else { return nil }
 
     let dirByte = bytes[bytes.startIndex]
-    guard let dir = MagVarDirection(byte: dirByte) else { return nil }
+    guard let dir = MagneticVariation.Direction(byte: dirByte) else { return nil }
 
     let valueSlice = bytes.slice(1..<5)
     guard let value = valueSlice.parseUInt() else { return nil }

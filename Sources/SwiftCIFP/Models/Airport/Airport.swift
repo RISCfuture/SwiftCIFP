@@ -74,14 +74,14 @@ public struct Airport: Sendable, Codable, CIFPDataLinkable {
   /// Transition level (flight level).
   public let transitionLevel: Int?
 
-  /// Public/military status.
-  public let publicMilitary: PublicMilitary?
+  /// Whether the airport is civil, military, joint use, or private.
+  public let use: Use?
 
   /// Reference system for bearings (magnetic or true north).
   public let bearingReference: BearingReference
 
   /// Geodetic datum for coordinate reference.
-  public let datumCode: DatumCode?
+  public let datum: GeodeticDatum?
 
   /// Airport name.
   public let name: String
@@ -103,8 +103,8 @@ public struct Airport: Sendable, Codable, CIFPDataLinkable {
   /// Path point records at this airport.
   public internal(set) var pathPoints: [PathPoint] = []
 
-  /// MSA records at this airport.
-  public internal(set) var msaRecords: [MSA] = []
+  /// Minimum safe altitudes around this airport.
+  public internal(set) var minimumSafeAltitudes: [MSA] = []
 
   /// SID procedures at this airport.
   public internal(set) var sids: [SID] = []
@@ -130,9 +130,9 @@ public struct Airport: Sendable, Codable, CIFPDataLinkable {
     speedLimitKts: Int?,
     transitionAltitudeFt: Int?,
     transitionLevel: Int?,
-    publicMilitary: PublicMilitary?,
+    use: Use?,
     bearingReference: BearingReference,
-    datumCode: DatumCode?,
+    datum: GeodeticDatum?,
     name: String
   ) {
     self.id = id
@@ -148,9 +148,9 @@ public struct Airport: Sendable, Codable, CIFPDataLinkable {
     self.speedLimitKts = speedLimitKts
     self.transitionAltitudeFt = transitionAltitudeFt
     self.transitionLevel = transitionLevel
-    self.publicMilitary = publicMilitary
+    self.use = use
     self.bearingReference = bearingReference
-    self.datumCode = datumCode
+    self.datum = datum
     self.name = name
   }
 
@@ -161,9 +161,9 @@ public struct Airport: Sendable, Codable, CIFPDataLinkable {
     case magneticVariation, elevationFt, longestRunwayLengthFt
     case longestRunwaySurface, isIFRCapable, speedLimitKts
     case transitionAltitudeFt, transitionLevel
-    case publicMilitary, bearingReference, datumCode, name
+    case use, bearingReference, datum, name
     case runways, terminalWaypoints, terminalNavaids, localizers
-    case pathPoints, msaRecords, sids, stars, approaches
+    case pathPoints, minimumSafeAltitudes, sids, stars, approaches
     // Note: 'data' is excluded to avoid encoding the weak reference
   }
 }
@@ -209,5 +209,24 @@ extension Airport {
   /// Transition altitude as a Measurement.
   public var transitionAltitude: Measurement<UnitLength>? {
     transitionAltitudeFt.map { .init(value: Double($0), unit: .feet) }
+  }
+}
+
+// MARK: - Use
+
+extension Airport {
+  /// Who may use an airport: civil, military, joint, or private.
+  public enum Use: Character, Sendable, Codable, CaseIterable, ByteInitializable {
+    /// Civil/public airport.
+    case civil = "C"
+
+    /// Military airport.
+    case military = "M"
+
+    /// Joint use (civil and military).
+    case joint = "J"
+
+    /// Private airport.
+    case `private` = "P"
   }
 }

@@ -23,7 +23,7 @@
 
 ### Navaid Reference
 
-- ``recommendedNavaid``
+- ``recommendedNavaidId``
 - ``recommendedNavaidICAO``
 - ``thetaDeg``
 - ``rhoNM``
@@ -42,7 +42,7 @@
 
 ### RF Leg Center Fix
 
-- ``centerFix``
+- ``centerFixId``
 - ``centerFixICAO``
 
 ### Computed Properties
@@ -53,8 +53,8 @@
 ### Linked Properties
 
 - ``fix``
-- ``navaid``
-- ``centerFixObject``
+- ``recommendedNavaid``
+- ``centerFix``
 
 ### Measurement Extensions
 

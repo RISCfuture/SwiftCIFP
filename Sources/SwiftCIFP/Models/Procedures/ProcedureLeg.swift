@@ -42,7 +42,7 @@ public struct ProcedureLeg: Sendable, Codable, Equatable, Hashable {
   public let isTurnDirectionValid: Bool
 
   /// Recommended navaid identifier.
-  public let recommendedNavaid: String?
+  public let recommendedNavaidId: String?
 
   /// Recommended navaid ICAO region.
   public let recommendedNavaidICAO: String?
@@ -75,7 +75,7 @@ public struct ProcedureLeg: Sendable, Codable, Equatable, Hashable {
   public let verticalAngleDeg: Double?
 
   /// Center fix identifier (for RF legs).
-  public let centerFix: String?
+  public let centerFixId: String?
 
   /// Center fix ICAO region.
   public let centerFixICAO: String?
@@ -101,7 +101,7 @@ public struct ProcedureLeg: Sendable, Codable, Equatable, Hashable {
     rnpNM: Double?,
     pathTerminator: PathTerminator?,
     isTurnDirectionValid: Bool,
-    recommendedNavaid: String?,
+    recommendedNavaidId: String?,
     recommendedNavaidICAO: String?,
     arcRadiusNM: Double?,
     thetaDeg: Double?,
@@ -112,7 +112,7 @@ public struct ProcedureLeg: Sendable, Codable, Equatable, Hashable {
     transitionAltitudeFt: Int?,
     speedConstraint: SpeedConstraint?,
     verticalAngleDeg: Double?,
-    centerFix: String?,
+    centerFixId: String?,
     centerFixICAO: String?
   ) {
     self.sequenceNumber = sequenceNumber
@@ -124,7 +124,7 @@ public struct ProcedureLeg: Sendable, Codable, Equatable, Hashable {
     self.rnpNM = rnpNM
     self.pathTerminator = pathTerminator
     self.isTurnDirectionValid = isTurnDirectionValid
-    self.recommendedNavaid = recommendedNavaid
+    self.recommendedNavaidId = recommendedNavaidId
     self.recommendedNavaidICAO = recommendedNavaidICAO
     self.arcRadiusNM = arcRadiusNM
     self.thetaDeg = thetaDeg
@@ -135,7 +135,7 @@ public struct ProcedureLeg: Sendable, Codable, Equatable, Hashable {
     self.transitionAltitudeFt = transitionAltitudeFt
     self.speedConstraint = speedConstraint
     self.verticalAngleDeg = verticalAngleDeg
-    self.centerFix = centerFix
+    self.centerFixId = centerFixId
     self.centerFixICAO = centerFixICAO
   }
 
@@ -157,11 +157,11 @@ public struct ProcedureLeg: Sendable, Codable, Equatable, Hashable {
   private enum CodingKeys: String, CodingKey {
     case sequenceNumber, fixId, fixICAO, fixSectionCode
     case waypointDescription, turnDirection, rnpNM, pathTerminator
-    case isTurnDirectionValid, recommendedNavaid, recommendedNavaidICAO
+    case isTurnDirectionValid, recommendedNavaidId, recommendedNavaidICAO
     case arcRadiusNM, thetaDeg, rhoNM, magneticCourseDeg
     case length, altitudeConstraint
     case transitionAltitudeFt, speedConstraint
-    case verticalAngleDeg, centerFix, centerFixICAO
+    case verticalAngleDeg, centerFixId, centerFixICAO
     // Note: 'findFix', 'findNavaid', 'parentAirportId' are excluded
   }
 }
@@ -243,14 +243,14 @@ extension ProcedureLeg {
   /// The resolved recommended navaid for this leg.
   ///
   /// This property uses the injected resolver to find the actual navaid object
-  /// based on the `recommendedNavaid` identifier.
-  public var navaid: Navaid? {
+  /// based on the `recommendedNavaidId` identifier.
+  public var recommendedNavaid: Navaid? {
     get async {
-      guard let recommendedNavaid,
+      guard let recommendedNavaidId,
         let findNavaid
       else { return nil }
       // Recommended navaids use section code "D" for VHF or "DB" for NDB
-      return await findNavaid(recommendedNavaid, recommendedNavaidICAO, nil)
+      return await findNavaid(recommendedNavaidId, recommendedNavaidICAO, nil)
     }
   }
 
@@ -258,12 +258,12 @@ extension ProcedureLeg {
   ///
   /// This property uses the injected resolver to find the actual center fix object
   /// used for radius-to-fix (RF) path terminators.
-  public var centerFixObject: Fix? {
+  public var centerFix: Fix? {
     get async {
-      guard let centerFix,
+      guard let centerFixId,
         let findFix
       else { return nil }
-      return await findFix(centerFix, centerFixICAO, nil, parentAirportId)
+      return await findFix(centerFixId, centerFixICAO, nil, parentAirportId)
     }
   }
 }

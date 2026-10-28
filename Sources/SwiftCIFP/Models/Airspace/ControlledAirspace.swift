@@ -17,7 +17,7 @@ public struct ControlledAirspace: Sendable, Codable, CIFPDataLinkable {
   public let airspaceCenter: String
 
   /// Airspace classification (B, C, D, E).
-  public let airspaceClass: AirspaceClass?
+  public let airspaceClass: Class?
 
   /// Multiple code (for overlapping airspaces).
   public let multipleCode: String?
@@ -38,7 +38,7 @@ public struct ControlledAirspace: Sendable, Codable, CIFPDataLinkable {
   init(
     icaoRegion: String,
     airspaceCenter: String,
-    airspaceClass: AirspaceClass?,
+    airspaceClass: Class?,
     multipleCode: String?,
     name: String,
     boundaries: [AirspaceBoundary],
@@ -103,6 +103,43 @@ extension ControlledAirspace {
     get async {
       guard let data else { return nil }
       return await data.airport(airspaceCenter)
+    }
+  }
+}
+
+// MARK: - Airspace Class
+
+extension ControlledAirspace {
+  /// Airspace classification.
+  public enum Class: Character, Sendable, Codable, CaseIterable, ByteInitializable {
+    /// Class A airspace.
+    case classA = "A"
+
+    /// Class B airspace.
+    case classB = "B"
+
+    /// Class C airspace.
+    case classC = "C"
+
+    /// Class D airspace.
+    case classD = "D"
+
+    /// Class E airspace.
+    case classE = "E"
+
+    /// Class G airspace (uncontrolled).
+    case classG = "G"
+
+    /// Human-readable name.
+    var name: String {
+      switch self {
+        case .classA: "Class A"
+        case .classB: "Class B"
+        case .classC: "Class C"
+        case .classD: "Class D"
+        case .classE: "Class E"
+        case .classG: "Class G"
+      }
     }
   }
 }

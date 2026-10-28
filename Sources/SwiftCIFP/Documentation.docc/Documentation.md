@@ -84,8 +84,6 @@ Key features:
 ### Errors
 
 - ``CIFPError``
-- ``CIFPFormatError``
-- ``AggregationErrorReason``
 
 ### Reference
 

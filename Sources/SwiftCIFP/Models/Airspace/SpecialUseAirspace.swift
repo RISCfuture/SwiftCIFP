@@ -14,7 +14,7 @@ public struct SpecialUseAirspace: Sendable, Codable, CIFPDataLinkable {
   public let icaoRegion: String
 
   /// Restrictive airspace type (MOA, Restricted, etc.).
-  public let restrictiveType: RestrictiveAirspaceType
+  public let kind: Kind
 
   /// Airspace designation (e.g., "R-2508", "MOA BUCKHORN").
   public let designation: String
@@ -36,7 +36,7 @@ public struct SpecialUseAirspace: Sendable, Codable, CIFPDataLinkable {
 
   /// Full designation including type prefix.
   public var fullDesignation: String {
-    switch restrictiveType {
+    switch kind {
       case .restricted: "R-\(designation)"
       case .prohibited: "P-\(designation)"
       case .warning: "W-\(designation)"
@@ -52,7 +52,7 @@ public struct SpecialUseAirspace: Sendable, Codable, CIFPDataLinkable {
   /// Creates a SpecialUseAirspace record.
   init(
     icaoRegion: String,
-    restrictiveType: RestrictiveAirspaceType,
+    kind: Kind,
     designation: String,
     multipleCode: String?,
     name: String,
@@ -61,7 +61,7 @@ public struct SpecialUseAirspace: Sendable, Codable, CIFPDataLinkable {
     upperLimit: Altitude?
   ) {
     self.icaoRegion = icaoRegion
-    self.restrictiveType = restrictiveType
+    self.kind = kind
     self.designation = designation
     self.multipleCode = multipleCode
     self.name = name
@@ -73,7 +73,7 @@ public struct SpecialUseAirspace: Sendable, Codable, CIFPDataLinkable {
   // MARK: - Codable
 
   private enum CodingKeys: String, CodingKey {
-    case icaoRegion, restrictiveType, designation, multipleCode
+    case icaoRegion, kind, designation, multipleCode
     case name, boundaries, lowerLimit, upperLimit
     // Note: 'data' is excluded to avoid encoding the weak reference
   }
@@ -107,6 +107,54 @@ extension SpecialUseAirspace {
         sectionCode: nil,
         airportId: nil
       )
+    }
+  }
+}
+
+// MARK: - Kind
+
+extension SpecialUseAirspace {
+  /// Restrictive/special use airspace type.
+  public enum Kind: Character, Sendable, Codable, CaseIterable, ByteInitializable {
+    /// Alert area.
+    case alert = "A"
+
+    /// Caution area.
+    case caution = "C"
+
+    /// Danger area.
+    case danger = "D"
+
+    /// Military Operations Area (MOA).
+    case moa = "M"
+
+    /// Prohibited area.
+    case prohibited = "P"
+
+    /// Restricted area.
+    case restricted = "R"
+
+    /// Temporary Reserved Airspace (TRA).
+    case tra = "T"
+
+    /// Special rules area (SFRA).
+    case specialRules = "U"
+
+    /// Warning area.
+    case warning = "W"
+
+    public var description: String {
+      switch self {
+        case .alert: "Alert"
+        case .caution: "Caution"
+        case .danger: "Danger"
+        case .moa: "MOA"
+        case .prohibited: "Prohibited"
+        case .restricted: "Restricted"
+        case .tra: "TRA"
+        case .specialRules: "SFRA"
+        case .warning: "Warning"
+      }
     }
   }
 }

@@ -21,7 +21,7 @@ public struct SID: Sendable, Codable, ProcedureLinkable {
   public let identifier: String
 
   /// Route type.
-  public let routeType: SIDRouteType
+  public let routeType: RouteType
 
   /// Transition identifier (if this is a transition).
   public let transitionId: String?
@@ -47,7 +47,7 @@ public struct SID: Sendable, Codable, ProcedureLinkable {
     airportId: String,
     icaoRegion: String,
     identifier: String,
-    routeType: SIDRouteType,
+    routeType: RouteType,
     transitionId: String?,
     runwayNames: Set<String>,
     legs: [ProcedureLeg]
@@ -142,6 +142,59 @@ extension SID {
       guard let data else { return [] }
       guard let airport = await data.airport(airportId) else { return [] }
       return airport.runways.filter { runwayNames.contains($0.name) }
+    }
+  }
+}
+
+// MARK: - Route Type
+
+extension SID {
+  /// SID route type (departure procedure).
+  public enum RouteType: Character, Sendable, Codable, CaseIterable, ByteInitializable {
+    /// Engine out SID.
+    case engineOut = "0"
+
+    /// SID runway transition.
+    case runwayTransition = "1"
+
+    /// SID or SID common route.
+    case commonRoute = "2"
+
+    /// SID enroute transition.
+    case enrouteTransition = "3"
+
+    /// RNAV SID runway transition.
+    case rnavRunwayTransition = "4"
+
+    /// RNAV SID or common route.
+    case rnavCommonRoute = "5"
+
+    /// RNAV SID enroute transition.
+    case rnavEnrouteTransition = "6"
+
+    /// FMS SID runway transition.
+    case fmsRunwayTransition = "F"
+
+    /// FMS SID or common route.
+    case fmsCommonRoute = "M"
+
+    /// FMS SID enroute transition.
+    case fmsEnrouteTransition = "S"
+
+    /// Vector SID.
+    case vector = "T"
+
+    /// Vector SID enroute transition.
+    case vectorEnrouteTransition = "V"
+
+    /// Whether this route type is a runway transition.
+    public var isRunwayTransition: Bool {
+      switch self {
+        case .runwayTransition, .rnavRunwayTransition, .fmsRunwayTransition:
+          true
+        default:
+          false
+      }
     }
   }
 }

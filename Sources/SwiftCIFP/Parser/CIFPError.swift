@@ -1,57 +1,12 @@
 public import Foundation
 
-/// Reasons why record aggregation can fail during CIFP building.
-public enum AggregationErrorReason: Sendable {
-  /// The MSA record is missing its radius.
-  case missingMSARadius
-
-  /// The procedure has an invalid route type character.
-  case invalidRouteType(Character)
-
-  /// The procedure or airway is missing its route type.
-  case missingRouteType
-
-  /// The approach procedure has no final approach route to take its approach type from.
-  case missingApproachType
-
-  /// The airspace has no boundary records.
-  case noBoundaryRecords
-
-  /// The special use airspace is missing its restrictive type.
-  case missingRestrictiveType
-
-  /// The procedure has no leg records.
-  case noLegRecords
-}
-
-/// Specific format errors that can occur during CIFP parsing.
-public enum CIFPFormatError: Sendable {
-  /// The header records were not found.
-  case missingHeader
-
-  /// The cycle date could not be parsed from the header.
-  case invalidCycleDate
-
-  /// An invalid coordinate format was encountered.
-  case invalidCoordinate(String)
-
-  /// An invalid altitude format was encountered.
-  case invalidAltitude(String)
-
-  /// The latitude direction is not N or S.
-  case invalidLatitudeDirection(Character)
-
-  /// The longitude direction is not E or W.
-  case invalidLongitudeDirection(Character)
-}
-
 /// Errors that can occur during CIFP parsing.
 public enum CIFPError: Error, LocalizedError, Sendable {
   /// The file data is not valid ASCII encoding.
   case invalidEncoding
 
   /// The file format is invalid.
-  case invalidFormat(CIFPFormatError)
+  case invalidFormat(FormatReason)
 
   /// A field could not be parsed.
   case parseError(field: String, value: String, line: Int)
@@ -78,7 +33,7 @@ public enum CIFPError: Error, LocalizedError, Sendable {
   case unknownSubsectionCode(section: String, subsection: Character, line: Int)
 
   /// Record aggregation failed during building.
-  case aggregationError(recordType: String, identifier: String, reason: AggregationErrorReason)
+  case aggregationError(recordType: String, identifier: String, reason: AggregationReason)
 
   public var errorDescription: String? {
     switch self {
@@ -219,5 +174,54 @@ public enum CIFPError: Error, LocalizedError, Sendable {
         .missingRequiredField, .unknownSubsectionCode, .aggregationError:
         nil
     }
+  }
+}
+
+// MARK: - Reasons
+
+extension CIFPError {
+  /// Why record aggregation failed during CIFP building.
+  public enum AggregationReason: Sendable {
+    /// The MSA record is missing its radius.
+    case missingMSARadius
+
+    /// The procedure has an invalid route type character.
+    case invalidRouteType(Character)
+
+    /// The procedure or airway is missing its route type.
+    case missingRouteType
+
+    /// The approach procedure has no final approach route to take its approach type from.
+    case missingApproachType
+
+    /// The airspace has no boundary records.
+    case noBoundaryRecords
+
+    /// The special use airspace is missing its restrictive type.
+    case missingRestrictiveType
+
+    /// The procedure has no leg records.
+    case noLegRecords
+  }
+
+  /// Why a CIFP file's format was invalid.
+  public enum FormatReason: Sendable {
+    /// The header records were not found.
+    case missingHeader
+
+    /// The cycle date could not be parsed from the header.
+    case invalidCycleDate
+
+    /// An invalid coordinate format was encountered.
+    case invalidCoordinate(String)
+
+    /// An invalid altitude format was encountered.
+    case invalidAltitude(String)
+
+    /// The latitude direction is not N or S.
+    case invalidLatitudeDirection(Character)
+
+    /// The longitude direction is not E or W.
+    case invalidLongitudeDirection(Character)
   }
 }
