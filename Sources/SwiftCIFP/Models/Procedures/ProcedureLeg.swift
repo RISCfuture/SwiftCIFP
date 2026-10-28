@@ -59,8 +59,8 @@ public struct ProcedureLeg: Sendable, Codable, Equatable, Hashable {
   /// Outbound magnetic course in degrees.
   public let magneticCourseDeg: Double?
 
-  /// Route distance in nm, or hold time in minutes (dual-purpose field).
-  public let routeDistanceNMOrMinutes: Double?
+  /// The leg's distance, or a holding pattern's leg length as a distance or a time.
+  public let length: Length?
 
   /// Altitude constraint for this leg.
   public let altitudeConstraint: AltitudeConstraint?
@@ -107,7 +107,7 @@ public struct ProcedureLeg: Sendable, Codable, Equatable, Hashable {
     thetaDeg: Double?,
     rhoNM: Double?,
     magneticCourseDeg: Double?,
-    routeDistanceNMOrMinutes: Double?,
+    length: Length?,
     altitudeConstraint: AltitudeConstraint?,
     transitionAltitudeFt: Int?,
     speedConstraint: SpeedConstraint?,
@@ -130,7 +130,7 @@ public struct ProcedureLeg: Sendable, Codable, Equatable, Hashable {
     self.thetaDeg = thetaDeg
     self.rhoNM = rhoNM
     self.magneticCourseDeg = magneticCourseDeg
-    self.routeDistanceNMOrMinutes = routeDistanceNMOrMinutes
+    self.length = length
     self.altitudeConstraint = altitudeConstraint
     self.transitionAltitudeFt = transitionAltitudeFt
     self.speedConstraint = speedConstraint
@@ -159,10 +159,24 @@ public struct ProcedureLeg: Sendable, Codable, Equatable, Hashable {
     case waypointDescription, turnDirection, rnpNM, pathTerminator
     case isTurnDirectionValid, recommendedNavaid, recommendedNavaidICAO
     case arcRadiusNM, thetaDeg, rhoNM, magneticCourseDeg
-    case routeDistanceNMOrMinutes, altitudeConstraint
+    case length, altitudeConstraint
     case transitionAltitudeFt, speedConstraint
     case verticalAngleDeg, centerFix, centerFixICAO
     // Note: 'findFix', 'findNavaid', 'parentAirportId' are excluded
+  }
+}
+
+// MARK: - Length
+
+extension ProcedureLeg {
+  /// A leg's length (ARINC 424 field 5.27). Its meaning depends on the path terminator: a
+  /// segment, along-track, or DME distance, or a holding pattern's leg length.
+  public enum Length: Sendable, Codable, Equatable, Hashable {
+    /// A distance.
+    case distance(Measurement<UnitLength>)
+
+    /// A holding pattern leg flown for a time.
+    case time(Measurement<UnitDuration>)
   }
 }
 

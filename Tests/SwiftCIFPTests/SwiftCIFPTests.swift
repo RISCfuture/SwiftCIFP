@@ -1280,6 +1280,28 @@ struct `speed constraint decoding` {
 }
 
 @Suite
+struct `leg length decoding` {
+  @Test
+  func `reads a distance in tenths of a nautical mile`() throws {
+    #expect(
+      try CoordinateParser.parseLegLength(Array("0061".utf8)[...])
+        == .distance(.init(value: 6.1, unit: .nauticalMiles))
+    )
+  }
+
+  @Test
+  func `reads a holding time in tenths of a minute`() throws {
+    let approach = try FAARecords.oaklandILS12Approach(transitionId: nil)
+    #expect(approach.missedApproachLegs.last?.length == .time(.init(value: 1, unit: .minutes)))
+  }
+
+  @Test(arguments: ["T01 ", "X010", "006"])
+  func `throws for a malformed field`(_ field: String) {
+    #expect(throws: CIFPError.self) { try CoordinateParser.parseLegLength(Array(field.utf8)[...]) }
+  }
+}
+
+@Suite
 struct `RNP decoding` {
   @Test(arguments: [("031", 0.3), ("302", 0.3), ("101", 1.0), ("010", 1.0), ("152", 0.15)])
   func `decodes a mantissa and negative exponent`(_ field: String, _ expected: Double) throws {

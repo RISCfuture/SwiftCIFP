@@ -30,7 +30,7 @@
 
 ### Distance & Route
 
-- ``routeDistanceNMOrMinutes``
+- ``length``
 - ``rnpNM``
 
 ### Constraints

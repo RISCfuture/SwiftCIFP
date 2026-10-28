@@ -283,6 +283,34 @@ enum CoordinateParser {
     return Double(raw) / 10.0
   }
 
+  /// Parse a procedure leg's length (ARINC 424 field 5.27).
+  ///
+  /// A distance is stored in tenths of a nautical mile ("0052" = 5.2 NM); a holding time is
+  /// "T" followed by tenths of a minute ("T010" = 1.0 minute).
+  /// - Parameters:
+  ///   - bytes: 4-byte length field.
+  ///   - lineNumber: Line number for error reporting.
+  /// - Returns: The leg's length, or nil if blank.
+  /// - Throws: `CIFPError.parseError` if the field is neither a distance nor a time.
+  static func parseLegLength<T: RandomAccessCollection>(
+    _ bytes: T,
+    lineNumber: Int = 0
+  ) throws -> ProcedureLeg.Length? where T.Element == UInt8, T.Index == Int {
+    guard !bytes.isBlank() else { return nil }
+
+    let isTime = bytes.first == ASCII.T
+    let digits = bytes.slice((isTime ? 1 : 0)..<bytes.count)
+    guard bytes.count == 4, digits.allSatisfy(ASCII.isDigit), let tenths = digits.parseUInt()
+    else {
+      throw CIFPError.parseError(field: "leg length", value: bytes.toRawString(), line: lineNumber)
+    }
+
+    let value = Double(tenths) / 10
+    return isTime
+      ? .time(.init(value: value, unit: .minutes))
+      : .distance(.init(value: value, unit: .nauticalMiles))
+  }
+
   /// Parse a runway gradient value.
   ///
   /// ARINC 424 runway gradient is stored as a 5-character field:

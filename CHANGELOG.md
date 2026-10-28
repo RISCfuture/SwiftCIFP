@@ -24,6 +24,9 @@
   blank description, which ARINC 424 field 5.261 defines as the mandatory "at"
   speed, produced no constraint. Cycle 2610 publishes 9,560 speed limits, and
   all but one were lost, including 4,104 "at or below" maximums.
+- Holding pattern leg times are no longer dropped. A time such as `T010` (1.0
+  minute) didn't parse as a distance, so cycle 2610's 4,303 timed holds had no
+  leg length.
 - RNP decodes as a two-digit mantissa and a negative exponent (ARINC 424 field
   5.211), so `031` is 0.3 NM rather than 3.1 NM. A malformed value now fails the
   record.
@@ -68,6 +71,8 @@
   rather than approach types, and `AggregationErrorReason.invalidApproachType`
   is gone. `HeliportApproach` gains `routeType`, and its `approachType` is no
   longer optional.
+- **BREAKING:** `ProcedureLeg.routeDistanceNMOrMinutes` is now `length`, a
+  `ProcedureLeg.Length` that is either a `distance` or a holding `time`.
 - **BREAKING:** `AltitudeConstraint` follows ARINC 424 field 5.29. The `G`,
   `H`, `I`, `J`, `V`, `X`, and `Y` cases each pair the procedure altitude with
   a glide slope, glide slope intercept, or vertical path altitude.
