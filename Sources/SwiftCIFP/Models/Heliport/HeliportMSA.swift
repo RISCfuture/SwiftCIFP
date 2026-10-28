@@ -17,6 +17,9 @@ public struct HeliportMSA: Sendable, Codable, CIFPDataLinkable {
   /// MSA center fix identifier.
   public let center: String
 
+  /// Multiple code indicator.
+  public let multipleCode: String?
+
   /// MSA radius in nautical miles.
   public let radiusNM: Double?
 
@@ -28,12 +31,14 @@ public struct HeliportMSA: Sendable, Codable, CIFPDataLinkable {
     parentId: String,
     icaoRegion: String,
     center: String,
+    multipleCode: String?,
     radiusNM: Double?,
     sectors: Set<MSA.Sector>
   ) {
     self.parentId = parentId
     self.icaoRegion = icaoRegion
     self.center = center
+    self.multipleCode = multipleCode
     self.radiusNM = radiusNM
     self.sectors = sectors
   }
@@ -41,7 +46,7 @@ public struct HeliportMSA: Sendable, Codable, CIFPDataLinkable {
   // MARK: - Codable
 
   private enum CodingKeys: String, CodingKey {
-    case parentId, icaoRegion, center, radiusNM, sectors
+    case parentId, icaoRegion, center, multipleCode, radiusNM, sectors
     // Note: 'data' is excluded
   }
 }

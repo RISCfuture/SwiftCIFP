@@ -57,6 +57,13 @@
   `requiredNavPerformance` never decoded and an unauthorized line looked the
   same as a missing record. Every route of a procedure, transitions included,
   now carries its levels of service, and heliport approaches have them too.
+- MSA records yield every sector they publish (up to seven, ARINC 424 section
+  4.1.20.1), not only the first, so 715 records in cycle 2610 regain sectors
+  such as OAK's 350°–170° at 3,800 feet. Five-character centers like CAXIN are
+  no longer cut to four, and MSAs about one center with different multiple
+  codes are kept apart, which recovers 317 MSAs. Heliport MSAs, which were read
+  from the wrong columns, now use the same layout, and `HeliportMSA` gains
+  `multipleCode`.
 - RNP decodes as a two-digit mantissa and a negative exponent (ARINC 424 field
   5.211), so `031` is 0.3 NM rather than 3.1 NM. A malformed value now fails the
   record.

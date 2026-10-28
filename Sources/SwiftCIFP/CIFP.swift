@@ -476,12 +476,12 @@ private struct CIFPBuilder {
           pathPointRecords[key] = (primary: nil, continuation: r)
         }
       case .msa(let r):
-        let key = "\(r.airportId)-\(r.center)"
+        let key = "\(r.airportId)-\(r.center)-\(r.multipleCode ?? "")"
         if var existing = msaRecords[key] {
-          existing.sectors.append(r.sector)
+          existing.sectors.append(contentsOf: r.sectors)
           msaRecords[key] = existing
         } else {
-          msaRecords[key] = (r, [r.sector])
+          msaRecords[key] = (r, r.sectors)
         }
       case .sidLeg(let r):
         let key = "\(r.airportId)-\(r.procedureId)-\(r.transitionId ?? "")"
@@ -512,12 +512,12 @@ private struct CIFPBuilder {
         let key = "\(r.airportId)-\(r.procedureId)-\(r.transitionId ?? "")"
         heliportApproachLegs[key, default: []].append(r)
       case .heliportMSA(let r):
-        let key = "\(r.parentId)-\(r.center)"
+        let key = "\(r.parentId)-\(r.center)-\(r.multipleCode ?? "")"
         if var existing = heliportMSARecords[key] {
-          existing.sectors.append(r.sector)
+          existing.sectors.append(contentsOf: r.sectors)
           heliportMSARecords[key] = existing
         } else {
-          heliportMSARecords[key] = (r, [r.sector])
+          heliportMSARecords[key] = (r, r.sectors)
         }
       case .approachContinuation(let r):
         let key = "\(r.airportId)-\(r.procedureId)"
@@ -958,6 +958,7 @@ private struct CIFPBuilder {
           parentId: value.base.parentId,
           icaoRegion: value.base.icaoRegion,
           center: value.base.center,
+          multipleCode: value.base.multipleCode,
           radiusNM: value.base.radius,
           sectors: Set(value.sectors)
         )

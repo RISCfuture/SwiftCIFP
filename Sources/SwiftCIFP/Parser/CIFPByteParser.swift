@@ -54,7 +54,7 @@ struct MSARecord: Sendable {
   let centerICAO: String
   let multipleCode: String?
   let radius: Double?
-  let sector: MSA.Sector
+  let sectors: [MSA.Sector]
   let bearingReference: BearingReference?
 }
 
@@ -76,8 +76,9 @@ struct HeliportMSARecord: Sendable {
   let parentId: String
   let icaoRegion: String
   let center: String
+  let multipleCode: String?
   let radius: Double?
-  let sector: MSA.Sector
+  let sectors: [MSA.Sector]
 }
 
 /// Intermediate path point continuation record for aggregation.

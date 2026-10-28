@@ -1131,6 +1131,23 @@ private enum FAARecords {
   static let atlanticCityVORTAC =
     "SUSAD        ACY   K6011715VTLW N39272115W074343473    N39272115W074343473W0100000671     NARATLANTIC CITY                 249602312"
 
+  /// Two KOAK MSAs: CAXIN, with one sector, and OAK, with two in one record.
+  static let oaklandMSAs = [
+    "SUSAP KOAKK2SCAXINK2PC                0   18018005125                                                                  M   726701310",
+    "SUSAP KOAKK2SOAK  K2D                 0   1703500512535017003825                                                       M   726721511"
+  ]
+
+  /// Fairbanks International, with two MSAs about FAI told apart by their multiple codes.
+  static let fairbanksMSAs = [
+    "SCANP PAFAPAAFAI     0     118YHN64485528W147512400E015000439         1800018000C    MNAR    FAIRBANKS INTL                074872211",
+    "SCANP PAFAPASFAI  PAD                 0   18018004525                                                                  M   077861208",
+    "SCANP PAFAPASFAI  PAD A               0   18018004425                                                                  M   077872308"
+  ]
+
+  /// The 87N MSA about CRANN.
+  static let southamptonMSA =
+    "SUSAH 87N K6SCRANNK6HC                0   18018001925                                                                  M   758711505"
+
   /// The first three fixes of V25.
   static let victor25 = [
     "SUSAER       V25         0100MZB  K2D 0V    OL                        30400134     03000     17500                         668992405",
@@ -1510,6 +1527,45 @@ struct `waypoint type decoding` {
   func `reads a VHF navaid's usage class`() throws {
     let cifp = try FAARecords.parse([FAARecords.atlanticCityVORTAC])
     #expect(cifp.vhfNavaids["ACY"]?.usageClass == .low)
+  }
+}
+
+// MARK: - MSA Decoding Tests
+
+@Suite
+struct `MSA decoding` {
+  @Test
+  func `reads every sector of a record and five-character centers`() throws {
+    let cifp = try FAARecords.parse([FAARecords.oakland] + FAARecords.oaklandMSAs)
+    let msas = try #require(cifp.airports["KOAK"]?.minimumSafeAltitudes)
+    let oak = try #require(msas.first { $0.center == "OAK" })
+
+    #expect(Set(msas.map(\.center)) == ["CAXIN", "OAK"])
+    #expect(
+      oak.sectors == [
+        MSA.Sector(sectorBearings: BearingRange(from: 170, to: 350), altitudeFt: 5100),
+        MSA.Sector(sectorBearings: BearingRange(from: 350, to: 170), altitudeFt: 3800)
+      ]
+    )
+    #expect(oak.radiusNM == 25)
+  }
+
+  @Test
+  func `keeps MSAs about one center apart by multiple code`() throws {
+    let cifp = try FAARecords.parse(FAARecords.fairbanksMSAs)
+    let msas = try #require(cifp.airports["PAFA"]?.minimumSafeAltitudes)
+
+    #expect(Set(msas.map(\.multipleCode)) == [nil, "A"])
+  }
+
+  @Test
+  func `reads a heliport MSA`() throws {
+    let cifp = try FAARecords.parse([FAARecords.southampton, FAARecords.southamptonMSA])
+    let msa = try #require(cifp.heliports["87N"]?.minimumSafeAltitudes.first)
+
+    #expect(msa.center == "CRANN")
+    #expect(msa.radiusNM == 25)
+    #expect(msa.sectors.map(\.altitudeFt) == [1900])
   }
 }
 
