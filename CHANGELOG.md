@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-10-28
+
 ### Added
 
 - `Approach` and `HeliportApproach` report each route's qualifiers (ARINC 424
