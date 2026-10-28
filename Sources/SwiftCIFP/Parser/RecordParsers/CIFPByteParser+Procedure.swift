@@ -49,6 +49,7 @@ extension CIFPByteParser {
       let contByte = bytes.count > 38 ? bytes[bytes.startIndex + 38] : ASCII.space
       if contByte >= ASCII.two && contByte <= ASCII.nine {
         return try parseApproachContinuation(bytes, lineNumber: lineNumber)
+          .map(ParsedRecord.approachContinuation) ?? .ignoredContinuation
       }
     }
 
@@ -209,36 +210,73 @@ extension CIFPByteParser {
     )
   }
 
-  /// Parse approach continuation record containing SBAS/LPV data.
+  /// Parse an approach continuation record. Only level of service records (application
+  /// type "W") are decoded.
   static func parseApproachContinuation(
     _ bytes: ArraySlice<UInt8>,
-    lineNumber _: Int
-  ) throws -> ParsedRecord {
-    let airportIdent = bytes.slice(6..<10).toString()
-    let procedureIdent = bytes.slice(13..<19).toString()
-    let transitionIdent = bytes.slice(20..<25).toString()
+    lineNumber: Int
+  ) throws -> ApproachContinuationRecord? {
+    let applicationType = bytes.count > 39 ? bytes[bytes.startIndex + 39] : ASCII.space
+    guard applicationType == ASCII.W else { return nil }
 
-    // SBAS service level (positions 41-50, 0-indexed 40-49)
-    let sbasSlice = bytes.slice(40..<50)
-    let sbasServiceLevel = SBASServiceLevel(string: sbasSlice.toString())
+    return ApproachContinuationRecord(
+      airportId: bytes.slice(6..<10).toString(),
+      procedureId: bytes.slice(13..<19).toString(),
+      levelsOfService: try parseLevelsOfService(bytes, lineNumber: lineNumber)
+    )
+  }
 
-    // Required nav performance (positions 51-60, 0-indexed 50-59)
-    let rnpSlice = bytes.slice(50..<60)
-    let requiredNavPerformance = RequiredNavPerformance(string: rnpSlice.toString())
+  /// Parse a level of service record: SBAS, LNAV/VNAV, and LNAV authorizations and names
+  /// (positions 40-72, ARINC 424 fields 5.275 and 5.276), then RNP AR authorizations and
+  /// values (from position 88).
+  private static func parseLevelsOfService(
+    _ bytes: ArraySlice<UInt8>,
+    lineNumber: Int
+  ) throws -> Approach.LevelsOfService {
+    func authorization(at offset: Int) throws -> Bool? {
+      let byte = bytes.count > offset ? bytes[bytes.startIndex + offset] : ASCII.space
+      switch byte {
+        case ASCII.A: return true
+        case ASCII.N: return false
+        case ASCII.space: return nil
+        default:
+          throw CIFPError.parseError(
+            field: "level of service authorization",
+            value: String(Character(UnicodeScalar(byte))),
+            line: lineNumber
+          )
+      }
+    }
 
-    // Lateral nav capability (positions 61-70, 0-indexed 60-69)
-    let latNavSlice = bytes.slice(60..<70)
-    let lateralNavCapability = LateralNavCapability(string: latNavSlice.toString())
+    func name(_ range: Range<Int>) -> String { bytes.slice(range).toString() }
 
-    return .approachContinuation(
-      ApproachContinuationRecord(
-        airportId: airportIdent,
-        procedureId: procedureIdent,
-        transitionId: transitionIdent.isEmpty ? nil : transitionIdent,
-        sbasServiceLevel: sbasServiceLevel,
-        requiredNavPerformance: requiredNavPerformance,
-        lateralNavCapability: lateralNavCapability
+    var sbasServiceLevel: Approach.SBASServiceLevel?
+    if try authorization(at: 40) == true {
+      guard let level = Approach.SBASServiceLevel(rawValue: name(41..<51)) else {
+        throw CIFPError.parseError(
+          field: "SBAS level of service",
+          value: name(41..<51),
+          line: lineNumber
+        )
+      }
+      sbasServiceLevel = level
+    }
+
+    var authorizedRNP: [Measurement<UnitLength>] = []
+    for offset in stride(from: 88, to: 116, by: 4) {
+      guard let isAuthorized = try authorization(at: offset) else { break }
+      let rnp = try CoordinateParser.parseRNP(
+        bytes.slice((offset + 1)..<(offset + 4)),
+        lineNumber: lineNumber
       )
+      if isAuthorized, let rnp { authorizedRNP.append(.init(value: rnp, unit: .nauticalMiles)) }
+    }
+
+    return Approach.LevelsOfService(
+      sbasServiceLevel: sbasServiceLevel,
+      isLNAVVNAVAuthorized: try authorization(at: 51),
+      isLNAVAuthorized: try authorization(at: 62),
+      authorizedRNP: authorizedRNP
     )
   }
 

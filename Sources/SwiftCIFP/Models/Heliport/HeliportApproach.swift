@@ -32,6 +32,9 @@ public struct HeliportApproach: Sendable, Codable, ProcedureLinkable {
   /// Missed approach legs.
   public internal(set) var missedApproachLegs: [ProcedureLeg]
 
+  /// The procedure's lines of minimums, if it publishes a level of service record.
+  public let levelsOfService: Approach.LevelsOfService?
+
   /// Creates a HeliportApproach record.
   init(
     parentId: String,
@@ -41,7 +44,8 @@ public struct HeliportApproach: Sendable, Codable, ProcedureLinkable {
     routeType: Approach.RouteType,
     transitionId: String?,
     legs: [ProcedureLeg],
-    missedApproachLegs: [ProcedureLeg]
+    missedApproachLegs: [ProcedureLeg],
+    levelsOfService: Approach.LevelsOfService?
   ) {
     self.parentId = parentId
     self.icaoRegion = icaoRegion
@@ -51,13 +55,14 @@ public struct HeliportApproach: Sendable, Codable, ProcedureLinkable {
     self.transitionId = transitionId
     self.legs = legs
     self.missedApproachLegs = missedApproachLegs
+    self.levelsOfService = levelsOfService
   }
 
   // MARK: - Codable
 
   private enum CodingKeys: String, CodingKey {
     case parentId, icaoRegion, identifier, approachType
-    case routeType, transitionId, legs, missedApproachLegs
+    case routeType, transitionId, legs, missedApproachLegs, levelsOfService
     // Note: 'data' is excluded
   }
 }

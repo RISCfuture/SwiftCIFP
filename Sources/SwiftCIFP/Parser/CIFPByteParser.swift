@@ -29,6 +29,7 @@ enum ParsedRecord: Sendable {
   case heliportApproachLeg(ProcedureLegRecord)
   case heliportMSA(HeliportMSARecord)
   case approachContinuation(ApproachContinuationRecord)
+  case heliportApproachContinuation(ApproachContinuationRecord)
 }
 
 /// Intermediate header record during parsing.
@@ -115,14 +116,11 @@ struct AirspaceBoundaryRecord: Sendable {
   }
 }
 
-/// Intermediate approach continuation record for SBAS/LPV data.
+/// Intermediate approach level of service continuation record.
 struct ApproachContinuationRecord: Sendable {
   let airportId: String
   let procedureId: String
-  let transitionId: String?
-  let sbasServiceLevel: SBASServiceLevel?
-  let requiredNavPerformance: RequiredNavPerformance?
-  let lateralNavCapability: LateralNavCapability?
+  let levelsOfService: Approach.LevelsOfService
 }
 
 /// Parser for CIFP fixed-width records.

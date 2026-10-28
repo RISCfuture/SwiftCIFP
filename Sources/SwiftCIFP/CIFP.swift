@@ -429,7 +429,8 @@ private struct CIFPBuilder {
   var heliportSTARLegs: [String: [ProcedureLegRecord]] = [:]
   var heliportApproachLegs: [String: [ProcedureLegRecord]] = [:]
   var heliportMSARecords: [String: (base: HeliportMSARecord, sectors: [MSA.Sector])] = [:]
-  var approachContinuations: [String: ApproachContinuationRecord] = [:]
+  var approachLevelsOfService: [String: Approach.LevelsOfService] = [:]
+  var heliportApproachLevelsOfService: [String: Approach.LevelsOfService] = [:]
 
   mutating func add(_ record: ParsedRecord) {
     switch record {
@@ -519,8 +520,11 @@ private struct CIFPBuilder {
           heliportMSARecords[key] = (r, [r.sector])
         }
       case .approachContinuation(let r):
-        let key = "\(r.airportId)-\(r.procedureId)-\(r.transitionId ?? "")"
-        approachContinuations[key] = r
+        let key = "\(r.airportId)-\(r.procedureId)"
+        approachLevelsOfService[key] = r.levelsOfService
+      case .heliportApproachContinuation(let r):
+        let key = "\(r.airportId)-\(r.procedureId)"
+        heliportApproachLevelsOfService[key] = r.levelsOfService
     }
   }
 
@@ -753,10 +757,10 @@ private struct CIFPBuilder {
   private func buildApproaches(errorCallback: ((any Error, Int?) -> Void)?) -> [Approach] {
     buildApproachRoutes(
       from: approachLegs,
+      levelsOfService: approachLevelsOfService,
       recordTypeName: "Approach",
-      makeProcedure: { key, first, route in
-        let continuation = approachContinuations[key]
-        return Approach(
+      makeProcedure: { first, route in
+        Approach(
           airportId: first.airportId,
           icaoRegion: first.icaoRegion,
           identifier: first.procedureId,
@@ -765,9 +769,7 @@ private struct CIFPBuilder {
           transitionId: first.transitionId,
           legs: route.legs,
           missedApproachLegs: route.missedApproachLegs,
-          sbasServiceLevel: continuation?.sbasServiceLevel,
-          requiredNavPerformance: continuation?.requiredNavPerformance,
-          lateralNavCapability: continuation?.lateralNavCapability
+          levelsOfService: route.levelsOfService
         )
       },
       errorCallback: errorCallback
@@ -853,8 +855,9 @@ private struct CIFPBuilder {
   {
     buildApproachRoutes(
       from: heliportApproachLegs,
+      levelsOfService: heliportApproachLevelsOfService,
       recordTypeName: "HeliportApproach",
-      makeProcedure: { _, first, route in
+      makeProcedure: { first, route in
         HeliportApproach(
           parentId: first.airportId,
           icaoRegion: first.icaoRegion,
@@ -863,7 +866,8 @@ private struct CIFPBuilder {
           routeType: route.routeType,
           transitionId: first.transitionId,
           legs: route.legs,
-          missedApproachLegs: route.missedApproachLegs
+          missedApproachLegs: route.missedApproachLegs,
+          levelsOfService: route.levelsOfService
         )
       },
       errorCallback: errorCallback
@@ -889,8 +893,9 @@ private struct CIFPBuilder {
   /// Builds approach records from leg records grouped by procedure and transition.
   private func buildApproachRoutes<Procedure>(
     from legs: [String: [ProcedureLegRecord]],
+    levelsOfService: [String: Approach.LevelsOfService],
     recordTypeName: String,
-    makeProcedure: (String, ProcedureLegRecord, ApproachRoute) -> Procedure,
+    makeProcedure: (ProcedureLegRecord, ApproachRoute) -> Procedure,
     errorCallback: ((any Error, Int?) -> Void)?
   ) -> [Procedure] {
     let approachTypes = approachTypes(in: legs)
@@ -909,7 +914,8 @@ private struct CIFPBuilder {
       guard let routeType = Approach.RouteType(code: code) else {
         return fail(.invalidRouteType(code))
       }
-      guard let approachType = approachTypes["\(first.airportId)-\(first.procedureId)"] else {
+      let procedureKey = "\(first.airportId)-\(first.procedureId)"
+      guard let approachType = approachTypes[procedureKey] else {
         return fail(.missingApproachType)
       }
 
@@ -921,13 +927,13 @@ private struct CIFPBuilder {
         sortedRecords.firstIndex(where: \.isMissedApproach) ?? sortedRecords.endIndex
 
       return makeProcedure(
-        key,
         first,
         ApproachRoute(
           approachType: approachType,
           routeType: routeType,
           legs: sortedRecords[..<firstMissedIndex].map(\.leg),
-          missedApproachLegs: sortedRecords[firstMissedIndex...].map(\.leg)
+          missedApproachLegs: sortedRecords[firstMissedIndex...].map(\.leg),
+          levelsOfService: levelsOfService[procedureKey]
         )
       )
     }
@@ -1180,4 +1186,5 @@ private struct ApproachRoute {
   let routeType: Approach.RouteType
   let legs: [ProcedureLeg]
   let missedApproachLegs: [ProcedureLeg]
+  let levelsOfService: Approach.LevelsOfService?
 }

@@ -36,16 +36,8 @@ public struct Approach: Sendable, Codable, ProcedureLinkable {
   /// Missed approach legs.
   public internal(set) var missedApproachLegs: [ProcedureLeg]
 
-  // MARK: - SBAS/LPV Continuation Data
-
-  /// SBAS approach service level (LPV, LP, or none).
-  public let sbasServiceLevel: SBASServiceLevel?
-
-  /// Required navigation performance for the approach.
-  public let requiredNavPerformance: RequiredNavPerformance?
-
-  /// Lateral navigation capability.
-  public let lateralNavCapability: LateralNavCapability?
+  /// The procedure's lines of minimums, if it publishes a level of service record.
+  public let levelsOfService: LevelsOfService?
 
   /// The final approach fix (FAF).
   public var finalApproachFix: ProcedureLeg? {
@@ -92,9 +84,7 @@ public struct Approach: Sendable, Codable, ProcedureLinkable {
     transitionId: String?,
     legs: [ProcedureLeg],
     missedApproachLegs: [ProcedureLeg],
-    sbasServiceLevel: SBASServiceLevel? = nil,
-    requiredNavPerformance: RequiredNavPerformance? = nil,
-    lateralNavCapability: LateralNavCapability? = nil
+    levelsOfService: LevelsOfService? = nil
   ) {
     self.airportId = airportId
     self.icaoRegion = icaoRegion
@@ -104,9 +94,7 @@ public struct Approach: Sendable, Codable, ProcedureLinkable {
     self.transitionId = transitionId
     self.legs = legs
     self.missedApproachLegs = missedApproachLegs
-    self.sbasServiceLevel = sbasServiceLevel
-    self.requiredNavPerformance = requiredNavPerformance
-    self.lateralNavCapability = lateralNavCapability
+    self.levelsOfService = levelsOfService
   }
 
   // MARK: - Codable
@@ -114,7 +102,7 @@ public struct Approach: Sendable, Codable, ProcedureLinkable {
   private enum CodingKeys: String, CodingKey {
     case airportId, icaoRegion, identifier, approachType
     case routeType, transitionId, legs, missedApproachLegs
-    case sbasServiceLevel, requiredNavPerformance, lateralNavCapability
+    case levelsOfService
     // Note: 'data' is excluded
   }
 }

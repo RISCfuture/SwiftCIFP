@@ -84,7 +84,10 @@ extension CIFPByteParser {
   ) throws -> ParsedRecord {
     // Primary records have '0', '1', or blank at position 38; continuation records have '2'+
     let contByte = bytes.count > 38 ? bytes[bytes.startIndex + 38] : ASCII.space
-    if contByte >= ASCII.two && contByte <= ASCII.nine { return .ignoredContinuation }
+    if contByte >= ASCII.two && contByte <= ASCII.nine {
+      return try parseApproachContinuation(bytes, lineNumber: lineNumber)
+        .map(ParsedRecord.heliportApproachContinuation) ?? .ignoredContinuation
+    }
 
     let heliportIdent = bytes.slice(6..<10).toString()
     let icaoRegion = bytes.slice(10..<12).toString()

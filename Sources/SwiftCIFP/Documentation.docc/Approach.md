@@ -23,11 +23,9 @@
 - ``finalApproachFix``
 - ``missedApproachPoint``
 
-### SBAS/LPV Data
+### Minimums
 
-- ``sbasServiceLevel``
-- ``requiredNavPerformance``
-- ``lateralNavCapability``
+- ``levelsOfService``
 
 ### Computed Properties
 

@@ -41,6 +41,13 @@
 - VHF navaid usage classes are read from column 30. Column 29, the DME type,
   was being read instead, so TACANs reported `terminal` and other navaids
   reported nothing.
+- Approach level of service records (ARINC 424-19 field 5.297) are decoded:
+  each line of minimums (LPV/LP, LNAV/VNAV, LNAV) as authorized or not, and the
+  RNP values an RNP AR approach is authorized to. The old decoding read fields a
+  column off and folded the authorization flag into the name, so
+  `requiredNavPerformance` never decoded and an unauthorized line looked the
+  same as a missing record. Every route of a procedure, transitions included,
+  now carries its levels of service, and heliport approaches have them too.
 - RNP decodes as a two-digit mantissa and a negative exponent (ARINC 424 field
   5.211), so `031` is 0.3 NM rather than 3.1 NM. A malformed value now fails the
   record.
@@ -129,6 +136,11 @@
   `MagneticVariation.Direction.true` is now `trueNorth`.
 - **BREAKING:** The unused `NDBInfo`, `IFRCapability`, `WaypointNameFormat`,
   and `DMEType` enums are gone.
+- **BREAKING:** `Approach.sbasServiceLevel`, `requiredNavPerformance`, and
+  `lateralNavCapability` are replaced by `levelsOfService`, an
+  `Approach.LevelsOfService`. `SBASServiceLevel` is now
+  `Approach.SBASServiceLevel`, and `RequiredNavPerformance` and
+  `LateralNavCapability` are gone.
 - **BREAKING:** `AltitudeConstraint` follows ARINC 424 field 5.29. The `G`,
   `H`, `I`, `J`, `V`, `X`, and `Y` cases each pair the procedure altitude with
   a glide slope, glide slope intercept, or vertical path altitude.

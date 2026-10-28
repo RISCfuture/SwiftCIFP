@@ -1085,6 +1085,28 @@ private enum FAARecords {
     "SUSAH 87N K6FR190  R      060BEADSK6EA0EE  R   HM                     23600040    + 02000          090              B-PS   758702010"
   ]
 
+  /// The final approach fix and runway of KOAK RNAV (GPS) Y RWY 12, with its level of service
+  /// record: LPV, LNAV/VNAV, and LNAV.
+  static let oaklandRNAV12Y = [
+    "SUSAP KOAKK2FR12-Y R      020PLAZAK2PC1E  F 010TF                                   01800                 RW12  K2PGA JS   725772408",
+    "SUSAP KOAKK2FR12-Y R      020PLAZAK2PC2WALPV       ALNAV/VNAV ALNAV                                                   JS   725781311",
+    "SUSAP KOAKK2FR12-Y R      030RW12 K2PG0GY M 031TF                                   00064             -275          A JS   725802408"
+  ]
+
+  /// The same for KOAK RNAV (GPS) RWY 10L, published with LNAV minimums only.
+  static let oaklandRNAV10L = [
+    "SUSAP KOAKK2FR10L  R      020ENCOLK2PC1E  F 010TF                                   01800                 JEPAG K2PCB PS   725562408",
+    "SUSAP KOAKK2FR10L  R      020ENCOLK2PC2WN          N          ALNAV                                                   PS   725572408",
+    "SUSAP KOAKK2FR10L  R      030JEPAGK2PC0EY M 031TF                                   00200             -279          B PS   725592408"
+  ]
+
+  /// The same for KOAK RNAV (RNP) Z RWY 12, authorized to RNP 0.30 and 0.15.
+  static let oaklandRNP12Z = [
+    "SUSAP KOAKK2FH12-Z H      020PLAZAK2PC1E  F    IF                                   01800     18000       RW12  K2PGA FS   723841311",
+    "SUSAP KOAKK2FH12-Z H      020PLAZAK2PC2W                                                A031A152                      FS   723851311",
+    "SUSAP KOAKK2FH12-Z H      030RW12 K2PG0GY M 031TF                                   00063             -275          A FS   723861810"
+  ]
+
   /// MEDIN on the 5C1 RNAV (GPS) RWY 35 transition: a fly-over fix ending the route.
   static let flyoverEndOfTransition =
     "SUSAP 5C1 K4FR35   R      060MEDINK4EA0EB   010TF                                 + 04100                           A JS   969752201"
@@ -1152,6 +1174,10 @@ private enum FAARecords {
     return try #require(
       cifp.airports["KOAK"]?.approaches.first { $0.transitionId == transitionId }
     )
+  }
+
+  static func oaklandApproach(_ records: [String]) throws -> Approach {
+    try #require(try parse([oakland] + records).airports["KOAK"]?.approaches.first)
   }
 
   static func waypointDescription(_ record: String) throws -> WaypointDescriptionCode? {
@@ -1344,6 +1370,41 @@ struct `RNP decoding` {
 }
 
 @Suite
+struct `level of service decoding` {
+  @Test
+  func `reads SBAS, LNAV/VNAV, and LNAV authorizations`() throws {
+    let levels = try #require(
+      try FAARecords.oaklandApproach(FAARecords.oaklandRNAV12Y).levelsOfService
+    )
+
+    #expect(levels.sbasServiceLevel == .lpv)
+    #expect(levels.isLNAVVNAVAuthorized == true)
+    #expect(levels.isLNAVAuthorized == true)
+  }
+
+  @Test
+  func `distinguishes unauthorized levels`() throws {
+    let levels = try #require(
+      try FAARecords.oaklandApproach(FAARecords.oaklandRNAV10L).levelsOfService
+    )
+
+    #expect(levels.sbasServiceLevel == nil)
+    #expect(levels.isLNAVVNAVAuthorized == false)
+    #expect(levels.isLNAVAuthorized == true)
+  }
+
+  @Test
+  func `reads the RNP values an RNP AR approach is authorized to`() throws {
+    let levels = try #require(
+      try FAARecords.oaklandApproach(FAARecords.oaklandRNP12Z).levelsOfService
+    )
+
+    #expect(levels.authorizedRNP.map(\.value) == [0.3, 0.15])
+    #expect(levels.isLNAVAuthorized == nil)
+  }
+}
+
+@Suite
 struct `approach identification` {
   private static func approach(identifiedAs identifier: String) -> Approach {
     Approach(
@@ -1400,6 +1461,7 @@ struct `approach identification` {
     #expect(approaches.map(\.approachType) == [.rnav, .rnav])
     #expect(approaches.first?.legs.map(\.sequenceNumber) == [10, 20, 30])
     #expect(approaches.first?.missedApproachLegs.map(\.sequenceNumber) == [40, 50, 60])
+    #expect(approaches.map { $0.levelsOfService?.isLNAVAuthorized } == [true, true])
   }
 }
 
