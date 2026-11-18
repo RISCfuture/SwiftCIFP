@@ -7,19 +7,24 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
+  route:
+    uses: RISCfuture/ci-workflows/.github/workflows/minerva-route.yml@1.1.0
+    permissions:
+      contents: read
   build:
     name: Build Documentation
     # CoreLocation symbols live behind #if canImport(CoreLocation), so the
     # published documentation is built on macOS to include them.
-    runs-on: macos-26
+    needs: route
+    runs-on: ${{ fromJSON(needs.route.outputs.macos-26) }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: SwiftyLab/setup-swift@v1.14.2
@@ -53,6 +58,9 @@ jobs:
     name: Deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
